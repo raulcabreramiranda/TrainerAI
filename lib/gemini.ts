@@ -21,7 +21,11 @@ function getRetryDelayMs(payload: GeminiErrorPayload) {
   return match[2] === "ms" ? value : value * 1000;
 }
 
-export async function askGemini(messages: GeminiMessage[]) {
+type GeminiOptions = {
+  responseMimeType?: string;
+};
+
+export async function askGemini(messages: GeminiMessage[], options: GeminiOptions = {}) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not set");
@@ -42,10 +46,17 @@ export async function askGemini(messages: GeminiMessage[]) {
   }));
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
-  const payload = {
+  const payload: {
+    systemInstruction?: { parts: { text: string }[] };
+    contents: { role: string; parts: { text: string }[] }[];
+    generationConfig?: { responseMimeType?: string };
+  } = {
     systemInstruction,
     contents
   };
+  if (options.responseMimeType) {
+    payload.generationConfig = { responseMimeType: options.responseMimeType };
+  }
 
   const response = await fetch(url, {
     method: "POST",
