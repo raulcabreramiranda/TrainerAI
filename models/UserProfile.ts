@@ -18,7 +18,9 @@ const userProfileSchema = new Schema(
     dislikedFoods: [{ type: String }],
     mealsPerDay: { type: Number },
     calorieTarget: { type: Number },
-    notes: { type: String }
+    notes: { type: String },
+    avatarBase64: { type: String },
+    avatarContentType: { type: String }
   },
   { timestamps: true, collection: "userprofiles" }
 );

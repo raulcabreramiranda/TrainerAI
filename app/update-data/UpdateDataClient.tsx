@@ -66,6 +66,8 @@ export function UpdateDataClient() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,6 +89,9 @@ export function UpdateDataClient() {
 
         const profile = profileData.profile;
         if (profile) {
+          if (profile.avatarBase64 && profile.avatarContentType) {
+            setAvatarUrl(`data:${profile.avatarContentType};base64,${profile.avatarBase64}`);
+          }
           setForm((prev) => ({
             ...prev,
             age: profile.age ? String(profile.age) : "",
@@ -132,6 +137,41 @@ export function UpdateDataClient() {
       .split(",")
       .map((item) => item.trim())
       .filter(Boolean);
+
+  const onAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const body = new FormData();
+      body.append("avatar", file);
+
+      const res = await fetch("/api/me/avatar", {
+        method: "POST",
+        body
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        const apiErrorKey = getApiErrorKey(data.error);
+        setError(apiErrorKey ? t(apiErrorKey) : t("errorAvatarUploadFailed"));
+        return;
+      }
+
+      if (data.profile?.avatarBase64 && data.profile?.avatarContentType) {
+        setAvatarUrl(`data:${data.profile.avatarContentType};base64,${data.profile.avatarBase64}`);
+        setMessage(t("avatarUpdated"));
+      }
+    } catch (err: any) {
+      setError(err.message ?? t("errorAvatarUploadFailed"));
+    } finally {
+      setAvatarUploading(false);
+      event.target.value = "";
+    }
+  };
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -194,6 +234,31 @@ export function UpdateDataClient() {
   return (
     <Card>
       <form className="space-y-8" onSubmit={onSubmit}>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="h-20 w-20 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={t("avatarTitle")} className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">
+                {t("avatarTitle")}
+              </div>
+            )}
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-slate-800">{t("avatarTitle")}</p>
+            <label className="inline-flex cursor-pointer items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:border-slate-300">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={onAvatarChange}
+                disabled={avatarUploading}
+              />
+              {avatarUploading ? t("avatarUploading") : t("avatarUpload")}
+            </label>
+          </div>
+        </div>
+
         <div className="grid gap-6 md:grid-cols-2">
           <Field label={t("ageLabel")} htmlFor="age">
             <input
