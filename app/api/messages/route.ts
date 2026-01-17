@@ -4,7 +4,7 @@ import { getUserIdFromRequest } from "@/lib/auth";
 import { Message } from "@/models/Message";
 import { UserProfile } from "@/models/UserProfile";
 import { Plan } from "@/models/Plan";
-import { askGemini, type GeminiMessage } from "@/lib/gemini";
+import { askGemini, GEMINI_MODEL, type GeminiMessage } from "@/lib/gemini";
 import { isNonEmptyString } from "@/lib/validation";
 
 const SYSTEM_PROMPT = `You are a helpful fitness and nutrition assistant.
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
         planId: planIdForMessage,
         role: "assistant",
         content: reply,
-        model: "gemini-2.0-flash"
+      model: GEMINI_MODEL
       }
     ]);
 

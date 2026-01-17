@@ -4,11 +4,11 @@ import { getUserIdFromRequest } from "@/lib/auth";
 import { UserProfile } from "@/models/UserProfile";
 import { Plan } from "@/models/Plan";
 import { Message } from "@/models/Message";
-import { askGemini } from "@/lib/gemini";
+import { askGemini, GEMINI_MODEL } from "@/lib/gemini";
 import { isNonEmptyString } from "@/lib/validation";
 
 const PROMPT_VERSION = "v1.0";
-const MODEL_NAME = "gemini-2.0-flash";
+const MODEL_NAME = GEMINI_MODEL;
 
 const SYSTEM_PROMPT = `You are a helpful fitness and nutrition assistant.
 You must NOT give medical advice.

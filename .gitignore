@@ -1,5 +1,6 @@
 node_modules
 .next
 .env
+.history
 .env.local
 .DS_Store
