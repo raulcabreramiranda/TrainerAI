@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     const language = normalizeLanguage(settings?.language ?? undefined);
     const planType = normalizePlanType(body.planType);
 
-    type PlanDoc = { _id: unknown; title?: string; updatedAt?: Date } | null;
+    type PlanDoc = { _id: unknown; title?: string | null; updatedAt?: Date | null } | null;
     let activePlan: PlanDoc = null;
     let activePlanType: PlanTypeModel | undefined;
     let activeWorkoutPlan: PlanDoc = null;
