@@ -86,6 +86,9 @@ export function NavBar() {
                   </div>
                 </div>
                 <nav className="py-3 text-sm text-slate-700">
+                  <Link className="block rounded-lg px-3 py-2 hover:bg-slate-50" href="/update-data" onClick={() => setOpen(false)}>
+                    {t("navUpdateData")}
+                  </Link>
                   <Link className="block rounded-lg px-3 py-2 hover:bg-slate-50" href="/dashboard" onClick={() => setOpen(false)}>
                     {t("navDashboard")}
                   </Link>
@@ -97,9 +100,6 @@ export function NavBar() {
                   </Link>
                   <Link className="block rounded-lg px-3 py-2 hover:bg-slate-50" href="/messages" onClick={() => setOpen(false)}>
                     {t("navMessages")}
-                  </Link>
-                  <Link className="block rounded-lg px-3 py-2 hover:bg-slate-50" href="/update-data" onClick={() => setOpen(false)}>
-                    {t("navUpdateData")}
                   </Link>
                 </nav>
               </div>

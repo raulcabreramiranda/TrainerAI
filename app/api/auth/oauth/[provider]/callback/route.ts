@@ -15,7 +15,7 @@ type OAuthProfile = {
   name?: string;
 };
 
-async function exchangeGoogle(code: string, redirectUri: string) {
+async function exchangeGoogle(code: string, redirectUri: string): Promise<OAuthProfile> {
   const config = getAuthUrlConfig("google");
   if (!config.clientId || !config.clientSecret) {
     throw new Error("OAuth not configured");
@@ -63,7 +63,7 @@ async function exchangeGoogle(code: string, redirectUri: string) {
   return { id: profile.sub, email: profile.email, name: profile.name } satisfies OAuthProfile;
 }
 
-async function exchangeFacebook(code: string, redirectUri: string) {
+async function exchangeFacebook(code: string, redirectUri: string): Promise<OAuthProfile> {
   const config = getAuthUrlConfig("facebook");
   if (!config.clientId || !config.clientSecret) {
     throw new Error("OAuth not configured");
@@ -102,11 +102,15 @@ async function exchangeFacebook(code: string, redirectUri: string) {
   return { id: profile.id, email: profile.email, name: profile.name } satisfies OAuthProfile;
 }
 
-async function exchangeApple() {
+async function exchangeApple(): Promise<OAuthProfile> {
   throw new Error("OAuth not configured");
 }
 
-async function getProfile(provider: OAuthProvider, code: string, redirectUri: string) {
+async function getProfile(
+  provider: OAuthProvider,
+  code: string,
+  redirectUri: string
+): Promise<OAuthProfile> {
   if (provider === "google") {
     return exchangeGoogle(code, redirectUri);
   }
