@@ -38,7 +38,8 @@ export async function POST(req: Request) {
     const user = await User.create({
       email: body.email.toLowerCase(),
       passwordHash,
-      name: isNonEmptyString(body.name) ? body.name.trim() : undefined
+      name: isNonEmptyString(body.name) ? body.name.trim() : undefined,
+      provider: "credentials"
     });
 
     await UserProfile.create({

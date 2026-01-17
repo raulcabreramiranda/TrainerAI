@@ -3,13 +3,21 @@ import mongoose, { Schema, type Model, type InferSchemaType } from "mongoose";
 const userSchema = new Schema(
   {
     email: { type: String, required: true, unique: true, trim: true, lowercase: true },
-    passwordHash: { type: String, required: true },
+    passwordHash: { type: String },
     name: { type: String },
+    provider: {
+      type: String,
+      enum: ["credentials", "google", "facebook", "apple"],
+      default: "credentials"
+    },
+    providerId: { type: String },
     role: { type: String, enum: ["user", "admin"], default: "user" },
     status: { type: String, enum: ["active", "blocked"], default: "active" }
   },
   { timestamps: true, collection: "users" }
 );
+
+userSchema.index({ provider: 1, providerId: 1 }, { unique: true, sparse: true });
 
 export type UserDocument = InferSchemaType<typeof userSchema> & {
   _id: mongoose.Types.ObjectId;

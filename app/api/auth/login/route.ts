@@ -23,6 +23,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Account is blocked." }, { status: 403 });
     }
 
+    if (!user.passwordHash) {
+      return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
+    }
+
     const ok = await verifyPassword(body.password, user.passwordHash);
     if (!ok) {
       return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
