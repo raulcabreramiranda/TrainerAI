@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+  background-image:
+    radial-gradient(circle at top, rgba(255, 245, 235, 0.8), transparent 45%),
+    radial-gradient(circle at 20% 20%, rgba(219, 234, 254, 0.6), transparent 40%);
+}
+
+::selection {
+  background: rgba(14, 116, 144, 0.2);
+}
+
+input, textarea, select {
+  @apply outline-none;
+}
+
+.fade-up {
+  @apply animate-fade-up;
+}
