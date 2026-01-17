@@ -4,6 +4,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Disclaimer } from "@/components/Disclaimer";
+import { useTranslations } from "@/components/LanguageProvider";
+import { getApiErrorKey, getOptionLabelKey } from "@/lib/i18n";
 
 type Profile = {
   goal: string;
@@ -21,6 +23,7 @@ type Plan = {
 };
 
 export function GenerateWorkoutClient() {
+  const t = useTranslations();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [note, setNote] = useState("");
@@ -40,7 +43,8 @@ export function GenerateWorkoutClient() {
         const planData = await planRes.json();
 
         if (!profileRes.ok) {
-          throw new Error(profileData.error ?? "Failed to load profile.");
+          const apiErrorKey = getApiErrorKey(profileData.error);
+          throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorLoadProfile"));
         }
 
         setProfile(profileData.profile);
@@ -48,7 +52,7 @@ export function GenerateWorkoutClient() {
           setPlan(planData.plan);
         }
       } catch (err: any) {
-        setError(err.message ?? "Something went wrong.");
+        setError(err.message ?? t("errorGeneric"));
       } finally {
         setLoading(false);
       }
@@ -71,63 +75,76 @@ export function GenerateWorkoutClient() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error ?? "Failed to generate workout.");
+        const apiErrorKey = getApiErrorKey(data.error);
+        throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorGenerateWorkout"));
       }
 
       setPlan(data.plan);
     } catch (err: any) {
-      setError(err.message ?? "Failed to generate workout.");
+      setError(err.message ?? t("errorGenerateWorkout"));
     } finally {
       setSubmitting(false);
     }
   };
 
   if (loading) {
-    return <p className="text-sm text-slate-500">Loading...</p>;
+    return <p className="text-sm text-slate-500">{t("loading")}</p>;
   }
 
   return (
     <div className="space-y-6">
       <Card>
-        <p className="text-sm font-semibold text-slate-800">Profile snapshot</p>
+        <p className="text-sm font-semibold text-slate-800">{t("profileSnapshotTitle")}</p>
         {profile ? (
           <div className="mt-3 space-y-2 text-sm text-slate-700">
             <p>
-              <span className="font-semibold text-slate-800">Goal:</span> {profile.goal}
+              <span className="font-semibold text-slate-800">{t("goalLabel")}</span>{" "}
+              {getOptionLabelKey("goal", profile.goal)
+                ? t(getOptionLabelKey("goal", profile.goal)!)
+                : profile.goal}
             </p>
             <p>
-              <span className="font-semibold text-slate-800">Experience:</span> {profile.experienceLevel}
+              <span className="font-semibold text-slate-800">{t("experienceLabel")}</span>{" "}
+              {getOptionLabelKey("experience", profile.experienceLevel)
+                ? t(getOptionLabelKey("experience", profile.experienceLevel)!)
+                : profile.experienceLevel}
             </p>
             <p>
-              <span className="font-semibold text-slate-800">Days/week:</span> {profile.daysPerWeek}
+              <span className="font-semibold text-slate-800">{t("daysPerWeekLabel")}</span>{" "}
+              {profile.daysPerWeek}
             </p>
             <p>
-              <span className="font-semibold text-slate-800">Location:</span> {profile.preferredLocation ?? "unspecified"}
+              <span className="font-semibold text-slate-800">{t("locationLabel")}</span>{" "}
+              {profile.preferredLocation
+                ? getOptionLabelKey("location", profile.preferredLocation)
+                  ? t(getOptionLabelKey("location", profile.preferredLocation)!)
+                  : profile.preferredLocation
+                : t("unspecified")}
             </p>
             <p>
-              <span className="font-semibold text-slate-800">Equipment:</span>{" "}
-              {(profile.availableEquipment || []).join(", ") || "none"}
+              <span className="font-semibold text-slate-800">{t("equipmentLabel")}</span>{" "}
+              {(profile.availableEquipment || []).join(", ") || t("none")}
             </p>
             <p>
-              <span className="font-semibold text-slate-800">Limitations:</span>{" "}
-              {profile.injuriesOrLimitations ?? "none"}
+              <span className="font-semibold text-slate-800">{t("limitationsLabel")}</span>{" "}
+              {profile.injuriesOrLimitations ?? t("none")}
             </p>
           </div>
         ) : (
-          <p className="mt-3 text-sm text-slate-500">Profile missing.</p>
+          <p className="mt-3 text-sm text-slate-500">{t("profileMissing")}</p>
         )}
       </Card>
 
       <Card>
         <form className="space-y-4" onSubmit={onSubmit}>
           <label className="text-sm font-semibold text-slate-800" htmlFor="note">
-            Extra note for this workout plan
+            {t("extraWorkoutNoteLabel")}
           </label>
           <textarea
             id="note"
             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
             rows={4}
-            placeholder="Focus more on legs and keep workouts under 40 minutes."
+            placeholder={t("extraWorkoutNotePlaceholder")}
             value={note}
             onChange={(event) => setNote(event.target.value)}
           />
@@ -138,7 +155,7 @@ export function GenerateWorkoutClient() {
             </p>
           ) : null}
           <Button type="submit" disabled={submitting}>
-            {submitting ? "Generating..." : "Generate workout plan"}
+            {submitting ? t("generating") : t("generateWorkoutPlan")}
           </Button>
         </form>
       </Card>
@@ -146,7 +163,7 @@ export function GenerateWorkoutClient() {
       {plan?.workoutPlanText ? (
         <Card>
           <p className="text-sm font-semibold text-slate-800">
-            {plan.title ?? "Workout plan"}
+            {plan.title ?? t("workoutPlanDefaultTitle")}
           </p>
           <pre className="mt-3 whitespace-pre-wrap text-sm text-slate-700">
             {plan.workoutPlanText}

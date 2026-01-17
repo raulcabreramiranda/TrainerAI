@@ -6,8 +6,10 @@ import { UserProfile } from "@/models/UserProfile";
 import { Plan } from "@/models/Plan";
 import { askGemini, GEMINI_MODEL, type GeminiMessage } from "@/lib/gemini";
 import { isNonEmptyString } from "@/lib/validation";
+import { Settings } from "@/models/Settings";
+import { languageInstruction, normalizeLanguage } from "@/lib/language";
 
-const SYSTEM_PROMPT = `You are a helpful fitness and nutrition assistant.
+const BASE_SYSTEM_PROMPT = `You are a helpful fitness and nutrition assistant.
 You must NOT give medical advice.
 You must NOT suggest extreme diets, dangerous exercises, supplements, drugs, or steroids.
 Focus on simple, low to moderate intensity workouts and balanced meals.
@@ -60,6 +62,8 @@ export async function POST(req: NextRequest) {
     await connectDb();
 
     const profile = await UserProfile.findOne({ userId });
+    const settings = await Settings.findOne({ userId });
+    const language = normalizeLanguage(settings?.language ?? undefined);
     const activePlan = body.planId
       ? await Plan.findById(body.planId)
       : await Plan.findOne({ userId, isActive: true }).sort({ createdAt: -1 });
@@ -86,7 +90,7 @@ export async function POST(req: NextRequest) {
 
     const systemMessage: GeminiMessage = {
       role: "system",
-      content: `${SYSTEM_PROMPT}\n\nContext:\n${contextLines.join("\n")}`
+      content: `${BASE_SYSTEM_PROMPT}\n${languageInstruction(language)}\n\nContext:\n${contextLines.join("\n")}`
     };
 
     const chatMessages: GeminiMessage[] = history

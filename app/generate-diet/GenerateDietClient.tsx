@@ -4,6 +4,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Disclaimer } from "@/components/Disclaimer";
+import { useTranslations } from "@/components/LanguageProvider";
+import { getApiErrorKey, getOptionLabelKey } from "@/lib/i18n";
 
 type Profile = {
   dietType?: string;
@@ -20,6 +22,7 @@ type Plan = {
 };
 
 export function GenerateDietClient() {
+  const t = useTranslations();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [note, setNote] = useState("");
@@ -39,7 +42,8 @@ export function GenerateDietClient() {
         const planData = await planRes.json();
 
         if (!profileRes.ok) {
-          throw new Error(profileData.error ?? "Failed to load profile.");
+          const apiErrorKey = getApiErrorKey(profileData.error);
+          throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorLoadProfile"));
         }
 
         setProfile(profileData.profile);
@@ -47,7 +51,7 @@ export function GenerateDietClient() {
           setPlan(planData.plan);
         }
       } catch (err: any) {
-        setError(err.message ?? "Something went wrong.");
+        setError(err.message ?? t("errorGeneric"));
       } finally {
         setLoading(false);
       }
@@ -70,60 +74,68 @@ export function GenerateDietClient() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error ?? "Failed to generate diet plan.");
+        const apiErrorKey = getApiErrorKey(data.error);
+        throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorGenerateDiet"));
       }
 
       setPlan(data.plan);
     } catch (err: any) {
-      setError(err.message ?? "Failed to generate diet plan.");
+      setError(err.message ?? t("errorGenerateDiet"));
     } finally {
       setSubmitting(false);
     }
   };
 
   if (loading) {
-    return <p className="text-sm text-slate-500">Loading...</p>;
+    return <p className="text-sm text-slate-500">{t("loading")}</p>;
   }
 
   return (
     <div className="space-y-6">
       <Card>
-        <p className="text-sm font-semibold text-slate-800">Diet snapshot</p>
+        <p className="text-sm font-semibold text-slate-800">{t("dietSnapshotTitle")}</p>
         {profile ? (
           <div className="mt-3 space-y-2 text-sm text-slate-700">
             <p>
-              <span className="font-semibold text-slate-800">Diet:</span> {profile.dietType ?? "unspecified"}
+              <span className="font-semibold text-slate-800">{t("dietLabel")}</span>{" "}
+              {profile.dietType
+                ? getOptionLabelKey("diet", profile.dietType)
+                  ? t(getOptionLabelKey("diet", profile.dietType)!)
+                  : profile.dietType
+                : t("unspecified")}
             </p>
             <p>
-              <span className="font-semibold text-slate-800">Allergies:</span>{" "}
-              {(profile.allergies || []).join(", ") || "none"}
+              <span className="font-semibold text-slate-800">{t("allergiesDisplayLabel")}</span>{" "}
+              {(profile.allergies || []).join(", ") || t("none")}
             </p>
             <p>
-              <span className="font-semibold text-slate-800">Disliked foods:</span>{" "}
-              {(profile.dislikedFoods || []).join(", ") || "none"}
+              <span className="font-semibold text-slate-800">{t("dislikedFoodsDisplayLabel")}</span>{" "}
+              {(profile.dislikedFoods || []).join(", ") || t("none")}
             </p>
             <p>
-              <span className="font-semibold text-slate-800">Meals/day:</span> {profile.mealsPerDay ?? "unspecified"}
+              <span className="font-semibold text-slate-800">{t("mealsPerDayDisplayLabel")}</span>{" "}
+              {profile.mealsPerDay ?? t("unspecified")}
             </p>
             <p>
-              <span className="font-semibold text-slate-800">Calorie target:</span> {profile.calorieTarget ?? "unspecified"}
+              <span className="font-semibold text-slate-800">{t("calorieTargetDisplayLabel")}</span>{" "}
+              {profile.calorieTarget ?? t("unspecified")}
             </p>
           </div>
         ) : (
-          <p className="mt-3 text-sm text-slate-500">Profile missing.</p>
+          <p className="mt-3 text-sm text-slate-500">{t("profileMissing")}</p>
         )}
       </Card>
 
       <Card>
         <form className="space-y-4" onSubmit={onSubmit}>
           <label className="text-sm font-semibold text-slate-800" htmlFor="note">
-            Extra note for this diet plan
+            {t("extraDietNoteLabel")}
           </label>
           <textarea
             id="note"
             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
             rows={4}
-            placeholder="I need simple meals for school and I don't like spicy food."
+            placeholder={t("extraDietNotePlaceholder")}
             value={note}
             onChange={(event) => setNote(event.target.value)}
           />
@@ -134,7 +146,7 @@ export function GenerateDietClient() {
             </p>
           ) : null}
           <Button type="submit" disabled={submitting}>
-            {submitting ? "Generating..." : "Generate diet plan"}
+            {submitting ? t("generating") : t("generateDietPlan")}
           </Button>
         </form>
       </Card>
@@ -142,7 +154,7 @@ export function GenerateDietClient() {
       {plan?.dietPlanText ? (
         <Card>
           <p className="text-sm font-semibold text-slate-800">
-            {plan.title ?? "Diet plan"}
+            {plan.title ?? t("dietPlanDefaultTitle")}
           </p>
           <pre className="mt-3 whitespace-pre-wrap text-sm text-slate-700">
             {plan.dietPlanText}

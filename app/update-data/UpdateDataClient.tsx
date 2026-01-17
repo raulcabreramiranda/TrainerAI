@@ -5,17 +5,47 @@ import Link from "next/link";
 import { Card } from "@/components/Card";
 import { Field } from "@/components/Field";
 import { Button } from "@/components/Button";
+import { useLanguage, useTranslations } from "@/components/LanguageProvider";
+import { normalizeLanguage } from "@/lib/language";
+import { getApiErrorKey, type TranslationKey } from "@/lib/i18n";
 
-const GOALS = ["general fitness", "build muscle", "lose fat", "improve endurance"];
-const EXPERIENCE = ["beginner", "intermediate", "advanced"];
-const LOCATIONS = ["home", "gym", "outdoor"];
-const DIET_TYPES = ["omnivore", "vegetarian", "vegan", "pescatarian", "flexitarian"];
+const GOAL_OPTIONS: { value: string; labelKey: TranslationKey }[] = [
+  { value: "general fitness", labelKey: "goalGeneralFitness" },
+  { value: "build muscle", labelKey: "goalBuildMuscle" },
+  { value: "lose fat", labelKey: "goalLoseFat" },
+  { value: "improve endurance", labelKey: "goalImproveEndurance" }
+];
+const EXPERIENCE_OPTIONS: { value: string; labelKey: TranslationKey }[] = [
+  { value: "beginner", labelKey: "experienceBeginner" },
+  { value: "intermediate", labelKey: "experienceIntermediate" },
+  { value: "advanced", labelKey: "experienceAdvanced" }
+];
+const LOCATION_OPTIONS: { value: string; labelKey: TranslationKey }[] = [
+  { value: "home", labelKey: "locationHome" },
+  { value: "gym", labelKey: "locationGym" },
+  { value: "outdoor", labelKey: "locationOutdoor" }
+];
+const DIET_OPTIONS: { value: string; labelKey: TranslationKey }[] = [
+  { value: "omnivore", labelKey: "dietOmnivore" },
+  { value: "vegetarian", labelKey: "dietVegetarian" },
+  { value: "vegan", labelKey: "dietVegan" },
+  { value: "pescatarian", labelKey: "dietPescatarian" },
+  { value: "flexitarian", labelKey: "dietFlexitarian" }
+];
+
+const LANGUAGE_OPTIONS: { value: string; labelKey: TranslationKey }[] = [
+  { value: "en", labelKey: "languageEn" },
+  { value: "es", labelKey: "languageEs" },
+  { value: "pt-BR", labelKey: "languagePtBr" }
+];
 
 type ProfileResponse = {
   profile?: Record<string, any>;
 };
 
 export function UpdateDataClient() {
+  const t = useTranslations();
+  const { language, setLanguage } = useLanguage();
   const [form, setForm] = useState({
     age: "",
     gender: "",
@@ -42,42 +72,54 @@ export function UpdateDataClient() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch("/api/me/profile");
-        const data = (await res.json()) as ProfileResponse;
-        if (!res.ok) {
-          throw new Error((data as any).error ?? "Failed to load profile.");
+        const [profileRes, settingsRes] = await Promise.all([
+          fetch("/api/me/profile"),
+          fetch("/api/me/settings")
+        ]);
+
+        const profileData = (await profileRes.json()) as ProfileResponse;
+        const settingsData = await settingsRes.json();
+
+        if (!profileRes.ok) {
+          const apiErrorKey = getApiErrorKey((profileData as any).error);
+          throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorLoadProfile"));
         }
 
-        if (data.profile) {
+        const profile = profileData.profile;
+        if (profile) {
           setForm((prev) => ({
             ...prev,
-            age: data.profile.age ? String(data.profile.age) : "",
-            gender: data.profile.gender ?? "",
-            heightCm: data.profile.heightCm ? String(data.profile.heightCm) : "",
-            weightKg: data.profile.weightKg ? String(data.profile.weightKg) : "",
-            goal: data.profile.goal ?? prev.goal,
-            experienceLevel: data.profile.experienceLevel ?? prev.experienceLevel,
-            daysPerWeek: data.profile.daysPerWeek ? String(data.profile.daysPerWeek) : prev.daysPerWeek,
-            preferredLocation: data.profile.preferredLocation ?? prev.preferredLocation,
-            availableEquipment: (data.profile.availableEquipment || []).join(", "),
-            injuriesOrLimitations: data.profile.injuriesOrLimitations ?? "",
-            dietType: data.profile.dietType ?? prev.dietType,
-            allergies: (data.profile.allergies || []).join(", "),
-            dislikedFoods: (data.profile.dislikedFoods || []).join(", "),
-            mealsPerDay: data.profile.mealsPerDay ? String(data.profile.mealsPerDay) : prev.mealsPerDay,
-            calorieTarget: data.profile.calorieTarget ? String(data.profile.calorieTarget) : "",
-            notes: data.profile.notes ?? ""
+            age: profile.age ? String(profile.age) : "",
+            gender: profile.gender ?? "",
+            heightCm: profile.heightCm ? String(profile.heightCm) : "",
+            weightKg: profile.weightKg ? String(profile.weightKg) : "",
+            goal: profile.goal ?? prev.goal,
+            experienceLevel: profile.experienceLevel ?? prev.experienceLevel,
+            daysPerWeek: profile.daysPerWeek ? String(profile.daysPerWeek) : prev.daysPerWeek,
+            preferredLocation: profile.preferredLocation ?? prev.preferredLocation,
+            availableEquipment: (profile.availableEquipment || []).join(", "),
+            injuriesOrLimitations: profile.injuriesOrLimitations ?? "",
+            dietType: profile.dietType ?? prev.dietType,
+            allergies: (profile.allergies || []).join(", "),
+            dislikedFoods: (profile.dislikedFoods || []).join(", "),
+            mealsPerDay: profile.mealsPerDay ? String(profile.mealsPerDay) : prev.mealsPerDay,
+            calorieTarget: profile.calorieTarget ? String(profile.calorieTarget) : "",
+            notes: profile.notes ?? ""
           }));
         }
+
+        if (settingsRes.ok) {
+          setLanguage(normalizeLanguage(settingsData.settings?.language));
+        }
       } catch (err: any) {
-        setError(err.message ?? "Failed to load profile.");
+        setError(err.message ?? t("errorLoadProfile"));
       } finally {
         setLoading(false);
       }
     };
 
     load();
-  }, []);
+  }, [setLanguage, t]);
 
   const onChange = (
     field: keyof typeof form
@@ -119,26 +161,41 @@ export function UpdateDataClient() {
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Failed to save profile.");
+        const apiErrorKey = getApiErrorKey(data.error);
+        setError(apiErrorKey ? t(apiErrorKey) : t("errorSaveProfile"));
+        setSaving(false);
+        return;
+      }
+
+      const settingsRes = await fetch("/api/me/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language })
+      });
+
+      const settingsData = await settingsRes.json();
+      if (!settingsRes.ok) {
+        const apiErrorKey = getApiErrorKey(settingsData.error);
+        setError(apiErrorKey ? t(apiErrorKey) : t("errorSaveSettings"));
       } else {
-        setMessage("Profile saved.");
+        setMessage(t("profileSaved"));
       }
     } catch (err: any) {
-      setError(err.message ?? "Failed to save profile.");
+      setError(err.message ?? t("errorSaveProfile"));
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return <p className="text-sm text-slate-500">Loading profile...</p>;
+    return <p className="text-sm text-slate-500">{t("loadingProfile")}</p>;
   }
 
   return (
     <Card>
       <form className="space-y-8" onSubmit={onSubmit}>
         <div className="grid gap-6 md:grid-cols-2">
-          <Field label="Age" htmlFor="age">
+          <Field label={t("ageLabel")} htmlFor="age">
             <input
               id="age"
               type="number"
@@ -149,17 +206,17 @@ export function UpdateDataClient() {
               max={100}
             />
           </Field>
-          <Field label="Gender" htmlFor="gender">
+          <Field label={t("genderLabel")} htmlFor="gender">
             <input
               id="gender"
               type="text"
               className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
               value={form.gender}
               onChange={onChange("gender")}
-              placeholder="optional"
+              placeholder={t("optionalPlaceholder")}
             />
           </Field>
-          <Field label="Height (cm)" htmlFor="heightCm">
+          <Field label={t("heightCmLabel")} htmlFor="heightCm">
             <input
               id="heightCm"
               type="number"
@@ -170,7 +227,7 @@ export function UpdateDataClient() {
               max={250}
             />
           </Field>
-          <Field label="Weight (kg)" htmlFor="weightKg">
+          <Field label={t("weightKgLabel")} htmlFor="weightKg">
             <input
               id="weightKg"
               type="number"
@@ -184,35 +241,35 @@ export function UpdateDataClient() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <Field label="Goal" htmlFor="goal">
+          <Field label={t("goalSelectLabel")} htmlFor="goal">
             <select
               id="goal"
               className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
               value={form.goal}
               onChange={onChange("goal")}
             >
-              {GOALS.map((goal) => (
-                <option key={goal} value={goal}>
-                  {goal}
+              {GOAL_OPTIONS.map((goal) => (
+                <option key={goal.value} value={goal.value}>
+                  {t(goal.labelKey)}
                 </option>
               ))}
             </select>
           </Field>
-          <Field label="Experience level" htmlFor="experienceLevel">
+          <Field label={t("experienceLevelLabel")} htmlFor="experienceLevel">
             <select
               id="experienceLevel"
               className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
               value={form.experienceLevel}
               onChange={onChange("experienceLevel")}
             >
-              {EXPERIENCE.map((level) => (
-                <option key={level} value={level}>
-                  {level}
+              {EXPERIENCE_OPTIONS.map((level) => (
+                <option key={level.value} value={level.value}>
+                  {t(level.labelKey)}
                 </option>
               ))}
             </select>
           </Field>
-          <Field label="Days per week" htmlFor="daysPerWeek">
+          <Field label={t("daysPerWeekInputLabel")} htmlFor="daysPerWeek">
             <input
               id="daysPerWeek"
               type="number"
@@ -224,16 +281,16 @@ export function UpdateDataClient() {
               required
             />
           </Field>
-          <Field label="Preferred location" htmlFor="preferredLocation">
+          <Field label={t("preferredLocationLabel")} htmlFor="preferredLocation">
             <select
               id="preferredLocation"
               className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
               value={form.preferredLocation}
               onChange={onChange("preferredLocation")}
             >
-              {LOCATIONS.map((location) => (
-                <option key={location} value={location}>
-                  {location}
+              {LOCATION_OPTIONS.map((location) => (
+                <option key={location.value} value={location.value}>
+                  {t(location.labelKey)}
                 </option>
               ))}
             </select>
@@ -241,9 +298,9 @@ export function UpdateDataClient() {
         </div>
 
         <Field
-          label="Available equipment"
+          label={t("availableEquipmentLabel")}
           htmlFor="availableEquipment"
-          hint="Comma-separated, e.g. dumbbells, resistance bands"
+          hint={t("availableEquipmentHint")}
         >
           <input
             id="availableEquipment"
@@ -254,7 +311,7 @@ export function UpdateDataClient() {
           />
         </Field>
 
-        <Field label="Injuries or limitations" htmlFor="injuriesOrLimitations">
+        <Field label={t("injuriesLabel")} htmlFor="injuriesOrLimitations">
           <textarea
             id="injuriesOrLimitations"
             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
@@ -265,21 +322,21 @@ export function UpdateDataClient() {
         </Field>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <Field label="Diet type" htmlFor="dietType">
+          <Field label={t("dietTypeLabel")} htmlFor="dietType">
             <select
               id="dietType"
               className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
               value={form.dietType}
               onChange={onChange("dietType")}
             >
-              {DIET_TYPES.map((diet) => (
-                <option key={diet} value={diet}>
-                  {diet}
+              {DIET_OPTIONS.map((diet) => (
+                <option key={diet.value} value={diet.value}>
+                  {t(diet.labelKey)}
                 </option>
               ))}
             </select>
           </Field>
-          <Field label="Meals per day" htmlFor="mealsPerDay">
+          <Field label={t("mealsPerDayLabel")} htmlFor="mealsPerDay">
             <input
               id="mealsPerDay"
               type="number"
@@ -292,7 +349,7 @@ export function UpdateDataClient() {
           </Field>
         </div>
 
-        <Field label="Allergies" htmlFor="allergies" hint="Comma-separated">
+        <Field label={t("allergiesLabel")} htmlFor="allergies" hint={t("allergiesHint")}>
           <input
             id="allergies"
             type="text"
@@ -302,7 +359,7 @@ export function UpdateDataClient() {
           />
         </Field>
 
-        <Field label="Disliked foods" htmlFor="dislikedFoods" hint="Comma-separated">
+        <Field label={t("dislikedFoodsLabel")} htmlFor="dislikedFoods" hint={t("dislikedFoodsHint")}>
           <input
             id="dislikedFoods"
             type="text"
@@ -313,7 +370,7 @@ export function UpdateDataClient() {
         </Field>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <Field label="Calorie target (approx)" htmlFor="calorieTarget">
+          <Field label={t("calorieTargetLabel")} htmlFor="calorieTarget">
             <input
               id="calorieTarget"
               type="number"
@@ -322,7 +379,24 @@ export function UpdateDataClient() {
               onChange={onChange("calorieTarget")}
             />
           </Field>
-          <Field label="Notes" htmlFor="notes">
+          <Field label={t("languageLabel")} htmlFor="language">
+            <select
+              id="language"
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
+              value={language}
+              onChange={(event) => setLanguage(normalizeLanguage(event.target.value))}
+            >
+              {LANGUAGE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.labelKey)}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <Field label={t("notesLabel")} htmlFor="notes">
             <textarea
               id="notes"
               className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
@@ -344,11 +418,11 @@ export function UpdateDataClient() {
 
         <div className="flex flex-wrap gap-3">
           <Button type="submit" disabled={saving}>
-            {saving ? "Saving..." : "Save"}
+            {saving ? t("saving") : t("save")}
           </Button>
           <Link href="/dashboard">
             <Button type="button" variant="secondary">
-              Back to dashboard
+              {t("backToDashboard")}
             </Button>
           </Link>
         </div>

@@ -7,9 +7,13 @@ import { Container } from "@/components/Container";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Field } from "@/components/Field";
+import { LanguageSelect } from "@/components/LanguageSelect";
+import { useTranslations } from "@/components/LanguageProvider";
+import { getApiErrorKey } from "@/lib/i18n";
 
 export default function SignupPage() {
   const router = useRouter();
+  const t = useTranslations();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -28,7 +32,7 @@ export default function SignupPage() {
     setError(null);
 
     if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match.");
+      setError(t("passwordMismatch"));
       return;
     }
 
@@ -46,14 +50,15 @@ export default function SignupPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Signup failed.");
+        const apiErrorKey = getApiErrorKey(data.error);
+        setError(apiErrorKey ? t(apiErrorKey) : t("errorSignupFailed"));
         setLoading(false);
         return;
       }
 
       router.push("/update-data");
     } catch (err) {
-      setError("Signup failed. Please try again.");
+      setError(t("errorSignupFailed"));
       setLoading(false);
     }
   };
@@ -62,36 +67,39 @@ export default function SignupPage() {
     <div className="min-h-screen">
       <Container>
         <div className="mx-auto max-w-lg">
-          <div className="mb-8 text-center">
-            <p className="font-display text-3xl text-slate-900">Move &amp; Munch</p>
+          <div className="mb-8 space-y-3 text-center">
+            <p className="font-display text-3xl text-slate-900">{t("appName")}</p>
             <p className="mt-2 text-sm text-slate-600">
-              Create your account to build safe workout and meal plans.
+              {t("signupSubtitle")}
             </p>
+            <div className="flex justify-center">
+              <LanguageSelect />
+            </div>
           </div>
           <Card>
             <form className="space-y-5" onSubmit={onSubmit}>
-              <Field label="Name" htmlFor="name">
+              <Field label={t("nameLabel")} htmlFor="name">
                 <input
                   id="name"
                   type="text"
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
                   value={form.name}
                   onChange={onChange("name")}
-                  placeholder="Sam"
+                  placeholder={t("namePlaceholder")}
                 />
               </Field>
-              <Field label="Email" htmlFor="email">
+              <Field label={t("emailLabel")} htmlFor="email">
                 <input
                   id="email"
                   type="email"
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
                   value={form.email}
                   onChange={onChange("email")}
-                  placeholder="you@example.com"
+                  placeholder={t("emailPlaceholder")}
                   required
                 />
               </Field>
-              <Field label="Password" htmlFor="password" hint="At least 8 characters.">
+              <Field label={t("passwordLabel")} htmlFor="password" hint={t("passwordHint")}>
                 <input
                   id="password"
                   type="password"
@@ -101,7 +109,7 @@ export default function SignupPage() {
                   required
                 />
               </Field>
-              <Field label="Confirm password" htmlFor="confirmPassword">
+              <Field label={t("confirmPasswordLabel")} htmlFor="confirmPassword">
                 <input
                   id="confirmPassword"
                   type="password"
@@ -117,13 +125,13 @@ export default function SignupPage() {
                 </p>
               ) : null}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Creating account..." : "Create account"}
+                {loading ? t("creatingAccount") : t("createAccount")}
               </Button>
             </form>
             <p className="mt-4 text-center text-xs text-slate-500">
-              Already have an account?{" "}
+              {t("alreadyHaveAccount")}{" "}
               <Link className="font-semibold text-slate-800" href="/login">
-                Log in
+                {t("logIn")}
               </Link>
             </p>
           </Card>

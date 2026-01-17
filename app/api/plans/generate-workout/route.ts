@@ -6,11 +6,14 @@ import { Plan } from "@/models/Plan";
 import { Message } from "@/models/Message";
 import { askGemini, GEMINI_MODEL } from "@/lib/gemini";
 import { isNonEmptyString } from "@/lib/validation";
+import { Settings } from "@/models/Settings";
+import { languageInstruction, normalizeLanguage } from "@/lib/language";
+import { getOptionLabelKey, translate } from "@/lib/i18n";
 
 const PROMPT_VERSION = "v1.0";
-const MODEL_NAME = GEMINI_MODEL;
+const MODEL_NAME: string = GEMINI_MODEL;
 
-const SYSTEM_PROMPT = `You are a helpful fitness and nutrition assistant.
+const BASE_SYSTEM_PROMPT = `You are a helpful fitness and nutrition assistant.
 You must NOT give medical advice.
 You must NOT suggest extreme diets, dangerous exercises, supplements, drugs, or steroids.
 Focus on simple, low to moderate intensity workouts and balanced meals.
@@ -33,6 +36,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Profile not found." }, { status: 404 });
     }
 
+    const settings = await Settings.findOne({ userId });
+    const language = normalizeLanguage(settings?.language ?? undefined);
+    const systemPrompt = `${BASE_SYSTEM_PROMPT}\n${languageInstruction(language)}`;
+    const goalKey = getOptionLabelKey("goal", profile.goal);
+    const goalLabel = goalKey ? translate(language, goalKey) : profile.goal;
+    const planTitle = translate(language, "workoutPlanDefaultTitle");
+    const planDescription = `${goalLabel} · ${profile.daysPerWeek} ${translate(language, "daysPerWeekShort")}`;
+
     const userPrompt = `Create a safe, beginner-friendly workout plan.
 Profile:
 - Goal: ${profile.goal}
@@ -50,7 +61,7 @@ Output format:
 - End with the reminder about general information and seeing a professional for pain/conditions`;
 
     const workoutPlanText = await askGemini([
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt }
     ]);
 
@@ -59,8 +70,8 @@ Output format:
     if (!plan) {
       plan = await Plan.create({
         userId,
-        title: "Workout Plan",
-        description: `${profile.goal} · ${profile.daysPerWeek} days/week`,
+        title: planTitle,
+        description: planDescription,
         workoutPlanText,
         model: MODEL_NAME,
         promptVersion: PROMPT_VERSION,
@@ -68,9 +79,9 @@ Output format:
       });
     } else {
       plan.workoutPlanText = workoutPlanText;
-      plan.title = plan.title || "Workout Plan";
-      plan.description = plan.description || `${profile.goal} · ${profile.daysPerWeek} days/week`;
-      plan.model = MODEL_NAME;
+      plan.title = plan.title || planTitle;
+      plan.description = plan.description || planDescription;
+      plan.set("model", MODEL_NAME);
       plan.promptVersion = PROMPT_VERSION;
       plan.isActive = true;
       await plan.save();
@@ -86,7 +97,7 @@ Output format:
         userId,
         planId: plan._id,
         role: "system",
-        content: SYSTEM_PROMPT
+        content: systemPrompt
       },
       {
         userId,

@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/require-auth";
 import { Container } from "@/components/Container";
 import { NavBar } from "@/components/NavBar";
 import { GenerateDietClient } from "./GenerateDietClient";
+import { PageHeader } from "@/components/PageHeader";
 
 export default function GenerateDietPage() {
   requireAuth();
@@ -10,10 +11,7 @@ export default function GenerateDietPage() {
     <div className="min-h-screen">
       <NavBar />
       <Container>
-        <div className="mb-6">
-          <p className="font-display text-3xl text-slate-900">Diet plan</p>
-          <p className="text-sm text-slate-600">Simple, balanced nutrition guidance.</p>
-        </div>
+        <PageHeader titleKey="dietTitle" subtitleKey="dietSubtitle" />
         <GenerateDietClient />
       </Container>
     </div>

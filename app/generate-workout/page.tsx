@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/require-auth";
 import { Container } from "@/components/Container";
 import { NavBar } from "@/components/NavBar";
 import { GenerateWorkoutClient } from "./GenerateWorkoutClient";
+import { PageHeader } from "@/components/PageHeader";
 
 export default function GenerateWorkoutPage() {
   requireAuth();
@@ -10,10 +11,7 @@ export default function GenerateWorkoutPage() {
     <div className="min-h-screen">
       <NavBar />
       <Container>
-        <div className="mb-6">
-          <p className="font-display text-3xl text-slate-900">Workout plan</p>
-          <p className="text-sm text-slate-600">Generate a safe, beginner-friendly routine.</p>
-        </div>
+        <PageHeader titleKey="workoutTitle" subtitleKey="workoutSubtitle" />
         <GenerateWorkoutClient />
       </Container>
     </div>

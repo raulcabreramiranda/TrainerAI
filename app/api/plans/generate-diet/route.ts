@@ -6,11 +6,14 @@ import { Plan } from "@/models/Plan";
 import { Message } from "@/models/Message";
 import { askGemini, GEMINI_MODEL } from "@/lib/gemini";
 import { isNonEmptyString } from "@/lib/validation";
+import { Settings } from "@/models/Settings";
+import { languageInstruction, normalizeLanguage } from "@/lib/language";
+import { getOptionLabelKey, translate } from "@/lib/i18n";
 
 const PROMPT_VERSION = "v1.0";
 const MODEL_NAME = GEMINI_MODEL;
 
-const SYSTEM_PROMPT = `You are a helpful fitness and nutrition assistant.
+const BASE_SYSTEM_PROMPT = `You are a helpful fitness and nutrition assistant.
 You must NOT give medical advice.
 You must NOT suggest extreme diets, dangerous exercises, supplements, drugs, or steroids.
 Focus on simple, low to moderate intensity workouts and balanced meals.
@@ -33,6 +36,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Profile not found." }, { status: 404 });
     }
 
+    const settings = await Settings.findOne({ userId });
+    const language = normalizeLanguage(settings?.language ?? undefined);
+    const systemPrompt = `${BASE_SYSTEM_PROMPT}\n${languageInstruction(language)}`;
+    const dietKey = profile.dietType ? getOptionLabelKey("diet", profile.dietType) : null;
+    const dietLabel = dietKey ? translate(language, dietKey) : profile.dietType;
+    const planTitle = translate(language, "dietPlanDefaultTitle");
+    const planDescription = dietLabel
+      ? `${dietLabel} ${translate(language, "dietFocusSuffix")}`
+      : translate(language, "balancedNutrition");
+
     const userPrompt = `Create a safe, balanced diet plan for a teen.
 Profile:
 - Diet type: ${profile.dietType ?? "unspecified"}
@@ -50,7 +63,7 @@ Output format:
 - End with the reminder about general information and seeing a professional for pain/conditions`;
 
     const dietPlanText = await askGemini([
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt }
     ]);
 
@@ -59,8 +72,8 @@ Output format:
     if (!plan) {
       plan = await Plan.create({
         userId,
-        title: "Diet Plan",
-        description: profile.dietType ? `${profile.dietType} focus` : "Balanced nutrition",
+        title: planTitle,
+        description: planDescription,
         dietPlanText,
         model: MODEL_NAME,
         promptVersion: PROMPT_VERSION,
@@ -68,10 +81,9 @@ Output format:
       });
     } else {
       plan.dietPlanText = dietPlanText;
-      plan.title = plan.title || "Diet Plan";
-      plan.description =
-        plan.description || (profile.dietType ? `${profile.dietType} focus` : "Balanced nutrition");
-      plan.model = MODEL_NAME;
+      plan.title = plan.title || planTitle;
+      plan.description = plan.description || planDescription;
+      plan.set("model", MODEL_NAME);
       plan.promptVersion = PROMPT_VERSION;
       plan.isActive = true;
       await plan.save();
@@ -87,7 +99,7 @@ Output format:
         userId,
         planId: plan._id,
         role: "system",
-        content: SYSTEM_PROMPT
+        content: systemPrompt
       },
       {
         userId,

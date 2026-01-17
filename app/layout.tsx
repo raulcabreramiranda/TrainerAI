@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { DM_Serif_Display, Space_Grotesk } from "next/font/google";
+import { LanguageProvider } from "@/components/LanguageProvider";
 
 const displayFont = DM_Serif_Display({
   subsets: ["latin"],
@@ -28,7 +29,7 @@ export default function RootLayout({
     <html lang="en" className={`${displayFont.variable} ${bodyFont.variable}`}>
       <body className="min-h-screen font-body">
         <div className="min-h-screen">
-          {children}
+          <LanguageProvider>{children}</LanguageProvider>
         </div>
       </body>
     </html>

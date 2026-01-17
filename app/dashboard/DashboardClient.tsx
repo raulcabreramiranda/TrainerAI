@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
+import { useTranslations } from "@/components/LanguageProvider";
+import { getApiErrorKey, getOptionLabelKey } from "@/lib/i18n";
 
 type Profile = {
   goal: string;
@@ -24,6 +26,7 @@ type Plan = {
 };
 
 export function DashboardClient() {
+  const t = useTranslations();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,17 +44,19 @@ export function DashboardClient() {
         const planData = await planRes.json();
 
         if (!profileRes.ok) {
-          throw new Error(profileData.error ?? "Failed to load profile.");
+          const apiErrorKey = getApiErrorKey(profileData.error);
+          throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorLoadProfile"));
         }
 
         if (!planRes.ok) {
-          throw new Error(planData.error ?? "Failed to load plan.");
+          const apiErrorKey = getApiErrorKey(planData.error);
+          throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorGeneric"));
         }
 
         setProfile(profileData.profile);
         setPlan(planData.plan);
       } catch (err: any) {
-        setError(err.message ?? "Something went wrong.");
+        setError(err.message ?? t("errorGeneric"));
       } finally {
         setLoading(false);
       }
@@ -61,7 +66,7 @@ export function DashboardClient() {
   }, []);
 
   if (loading) {
-    return <p className="text-sm text-slate-500">Loading your dashboard...</p>;
+    return <p className="text-sm text-slate-500">{t("loadingDashboard")}</p>;
   }
 
   if (error) {
@@ -77,80 +82,95 @@ export function DashboardClient() {
       <Card>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-slate-800">Profile summary</p>
-            <p className="mt-1 text-xs text-slate-500">
-              Goal, experience, and preferences.
-            </p>
+            <p className="text-sm font-semibold text-slate-800">{t("profileSummaryTitle")}</p>
+            <p className="mt-1 text-xs text-slate-500">{t("profileSummarySubtitle")}</p>
           </div>
           <Link href="/update-data" className="text-xs font-semibold text-slate-700">
-            Update data
+            {t("updateData")}
           </Link>
         </div>
         {profile ? (
           <div className="mt-4 space-y-2 text-sm text-slate-700">
             <p>
-              <span className="font-semibold text-slate-800">Goal:</span> {profile.goal}
+              <span className="font-semibold text-slate-800">{t("goalLabel")}</span>{" "}
+              {getOptionLabelKey("goal", profile.goal)
+                ? t(getOptionLabelKey("goal", profile.goal)!)
+                : profile.goal}
             </p>
             <p>
-              <span className="font-semibold text-slate-800">Experience:</span> {profile.experienceLevel}
+              <span className="font-semibold text-slate-800">{t("experienceLabel")}</span>{" "}
+              {getOptionLabelKey("experience", profile.experienceLevel)
+                ? t(getOptionLabelKey("experience", profile.experienceLevel)!)
+                : profile.experienceLevel}
             </p>
             <p>
-              <span className="font-semibold text-slate-800">Days/week:</span> {profile.daysPerWeek}
+              <span className="font-semibold text-slate-800">{t("daysPerWeekLabel")}</span>{" "}
+              {profile.daysPerWeek}
             </p>
             <p>
-              <span className="font-semibold text-slate-800">Diet:</span> {profile.dietType ?? "unspecified"}
+              <span className="font-semibold text-slate-800">{t("dietLabel")}</span>{" "}
+              {profile.dietType
+                ? getOptionLabelKey("diet", profile.dietType)
+                  ? t(getOptionLabelKey("diet", profile.dietType)!)
+                  : profile.dietType
+                : t("unspecified")}
             </p>
             <p>
-              <span className="font-semibold text-slate-800">Location:</span> {profile.preferredLocation ?? "unspecified"}
+              <span className="font-semibold text-slate-800">{t("locationLabel")}</span>{" "}
+              {profile.preferredLocation
+                ? getOptionLabelKey("location", profile.preferredLocation)
+                  ? t(getOptionLabelKey("location", profile.preferredLocation)!)
+                  : profile.preferredLocation
+                : t("unspecified")}
             </p>
             <p>
-              <span className="font-semibold text-slate-800">Equipment:</span>{" "}
-              {(profile.availableEquipment || []).join(", ") || "none"}
+              <span className="font-semibold text-slate-800">{t("equipmentLabel")}</span>{" "}
+              {(profile.availableEquipment || []).join(", ") || t("none")}
             </p>
           </div>
         ) : (
-          <p className="mt-4 text-sm text-slate-500">No profile yet.</p>
+          <p className="mt-4 text-sm text-slate-500">{t("noProfileYet")}</p>
         )}
       </Card>
       <Card>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-slate-800">Active plan</p>
-            <p className="mt-1 text-xs text-slate-500">
-              Latest workout and diet plan from Gemini.
-            </p>
+            <p className="text-sm font-semibold text-slate-800">{t("activePlanTitle")}</p>
+            <p className="mt-1 text-xs text-slate-500">{t("activePlanSubtitle")}</p>
           </div>
           <div className="flex gap-2">
             <Link href="/generate-workout" className="text-xs font-semibold text-slate-700">
-              Workout
+              {t("workout")}
             </Link>
             <Link href="/generate-diet" className="text-xs font-semibold text-slate-700">
-              Diet
+              {t("diet")}
             </Link>
           </div>
         </div>
         {plan ? (
           <div className="mt-4 space-y-2 text-sm text-slate-700">
-            <p className="font-semibold text-slate-800">{plan.title ?? "Active Plan"}</p>
-            <p>{plan.description ?? "Your latest plan is ready."}</p>
+            <p className="font-semibold text-slate-800">
+              {plan.title ?? t("activePlanDefaultTitle")}
+            </p>
+            <p>{plan.description ?? t("activePlanDefaultDesc")}</p>
             <div className="flex flex-wrap gap-2 pt-2">
               <Link href="/generate-workout">
-                <Button variant="secondary">View workout</Button>
+                <Button variant="secondary">{t("viewWorkout")}</Button>
               </Link>
               <Link href="/generate-diet">
-                <Button variant="secondary">View diet</Button>
+                <Button variant="secondary">{t("viewDiet")}</Button>
               </Link>
             </div>
           </div>
         ) : (
           <div className="mt-4 space-y-3">
-            <p className="text-sm text-slate-500">No plan yet. Generate one to get started.</p>
+            <p className="text-sm text-slate-500">{t("noPlanYet")}</p>
             <div className="flex flex-wrap gap-2">
               <Link href="/generate-workout">
-                <Button variant="secondary">Generate workout plan</Button>
+                <Button variant="secondary">{t("generateWorkoutPlan")}</Button>
               </Link>
               <Link href="/generate-diet">
-                <Button variant="secondary">Generate diet plan</Button>
+                <Button variant="secondary">{t("generateDietPlan")}</Button>
               </Link>
             </div>
           </div>

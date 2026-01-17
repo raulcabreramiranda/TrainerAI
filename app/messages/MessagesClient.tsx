@@ -3,9 +3,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
-
-const SAFETY_TEXT =
-  "If you have strong pain, injuries, or health issues, talk to a professional instead of relying only on this chat.";
+import { useTranslations } from "@/components/LanguageProvider";
+import { getApiErrorKey } from "@/lib/i18n";
 
 type Message = {
   _id: string;
@@ -20,6 +19,7 @@ type Plan = {
 };
 
 export function MessagesClient() {
+  const t = useTranslations();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -33,7 +33,8 @@ export function MessagesClient() {
     const res = await fetch(`/api/messages${query}`);
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.error ?? "Failed to load messages.");
+      const apiErrorKey = getApiErrorKey(data.error);
+      throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorLoadMessages"));
     }
     setMessages(data.messages || []);
   };
@@ -48,7 +49,7 @@ export function MessagesClient() {
         }
         await loadMessages();
       } catch (err: any) {
-        setError(err.message ?? "Failed to load messages.");
+        setError(err.message ?? t("errorLoadMessages"));
       } finally {
         setLoading(false);
       }
@@ -60,7 +61,7 @@ export function MessagesClient() {
   useEffect(() => {
     if (loading) return;
     const planId = filter === "active" ? activePlan?._id : undefined;
-    loadMessages(planId).catch((err) => setError(err.message ?? "Failed to load messages."));
+    loadMessages(planId).catch((err) => setError(err.message ?? t("errorLoadMessages")));
   }, [filter]);
 
   const onSubmit = async (event: FormEvent) => {
@@ -84,20 +85,21 @@ export function MessagesClient() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error ?? "Failed to send message.");
+        const apiErrorKey = getApiErrorKey(data.error);
+        throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorSendMessage"));
       }
 
       setMessages((prev) => [...prev, ...(data.messages || [])]);
       setInput("");
     } catch (err: any) {
-      setError(err.message ?? "Failed to send message.");
+      setError(err.message ?? t("errorSendMessage"));
     } finally {
       setSending(false);
     }
   };
 
   if (loading) {
-    return <p className="text-sm text-slate-500">Loading messages...</p>;
+    return <p className="text-sm text-slate-500">{t("loadingMessages")}</p>;
   }
 
   return (
@@ -105,17 +107,17 @@ export function MessagesClient() {
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-slate-800">Chat history</p>
-            <p className="text-xs text-slate-500">Choose a plan to filter messages.</p>
+            <p className="text-sm font-semibold text-slate-800">{t("chatHistoryTitle")}</p>
+            <p className="text-xs text-slate-500">{t("chatHistorySubtitle")}</p>
           </div>
           <select
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
           >
-            <option value="all">All</option>
+            <option value="all">{t("filterAll")}</option>
             <option value="active" disabled={!activePlan}>
-              Active plan
+              {t("filterActivePlan")}
             </option>
           </select>
         </div>
@@ -126,7 +128,7 @@ export function MessagesClient() {
         ) : null}
         <div className="mt-4 space-y-3">
           {messages.length === 0 ? (
-            <p className="text-sm text-slate-500">No messages yet.</p>
+            <p className="text-sm text-slate-500">{t("noMessagesYet")}</p>
           ) : (
             messages.map((message) => (
               <div
@@ -154,19 +156,19 @@ export function MessagesClient() {
       <Card>
         <form className="space-y-3" onSubmit={onSubmit}>
           <label className="text-sm font-semibold text-slate-800" htmlFor="message">
-            Ask a question
+            {t("askQuestion")}
           </label>
           <textarea
             id="message"
             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
             rows={4}
-            placeholder="How can I warm up before a school sports practice?"
+            placeholder={t("messagePlaceholder")}
             value={input}
             onChange={(event) => setInput(event.target.value)}
           />
-          <p className="text-xs text-slate-500">{SAFETY_TEXT}</p>
+          <p className="text-xs text-slate-500">{t("safetyText")}</p>
           <Button type="submit" disabled={sending}>
-            {sending ? "Sending..." : "Send"}
+            {sending ? t("sending") : t("send")}
           </Button>
         </form>
       </Card>

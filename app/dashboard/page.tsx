@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/require-auth";
 import { Container } from "@/components/Container";
 import { NavBar } from "@/components/NavBar";
 import { Disclaimer } from "@/components/Disclaimer";
+import { PageHeader } from "@/components/PageHeader";
 import { DashboardClient } from "./DashboardClient";
 
 export default function DashboardPage() {
@@ -11,12 +12,7 @@ export default function DashboardPage() {
     <div className="min-h-screen">
       <NavBar />
       <Container>
-        <div className="mb-6">
-          <p className="font-display text-3xl text-slate-900">Dashboard</p>
-          <p className="text-sm text-slate-600">
-            Your profile summary and active plan live here.
-          </p>
-        </div>
+        <PageHeader titleKey="dashboardTitle" subtitleKey="dashboardSubtitle" />
         <div className="mb-6">
           <Disclaimer />
         </div>
