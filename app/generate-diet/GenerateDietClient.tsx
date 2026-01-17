@@ -47,8 +47,8 @@ export function GenerateDietClient() {
         }
 
         setProfile(profileData.profile);
-        if (planData.plan?.dietPlanText) {
-          setPlan(planData.plan);
+        if (planData.dietPlan?.dietPlanText) {
+          setPlan(planData.dietPlan);
         }
       } catch (err: any) {
         setError(err.message ?? t("errorGeneric"));

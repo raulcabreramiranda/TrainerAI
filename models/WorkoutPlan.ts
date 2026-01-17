@@ -59,24 +59,24 @@ const workoutPlanSchema = new Schema(
   { _id: false }
 );
 
-const planSchema = new Schema(
+const workoutPlanRecordSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     title: { type: String },
     description: { type: String },
     workoutPlanText: { type: String },
     workoutPlan: { type: workoutPlanSchema },
-    dietPlanText: { type: String },
     model: { type: String },
     promptVersion: { type: String },
     isActive: { type: Boolean, default: false }
   },
-  { timestamps: true, collection: "plans" }
+  { timestamps: true, collection: "workout_plans" }
 );
 
-export type PlanDocument = InferSchemaType<typeof planSchema> & {
+export type WorkoutPlanDocument = InferSchemaType<typeof workoutPlanRecordSchema> & {
   _id: mongoose.Types.ObjectId;
 };
 
-export const Plan: Model<PlanDocument> =
-  mongoose.models.Plan || mongoose.model<PlanDocument>("Plan", planSchema);
+export const WorkoutPlanModel: Model<WorkoutPlanDocument> =
+  mongoose.models.WorkoutPlan ||
+  mongoose.model<WorkoutPlanDocument>("WorkoutPlan", workoutPlanRecordSchema);

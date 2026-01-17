@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { connectDb } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
-import { Plan } from "@/models/Plan";
+import { WorkoutPlanModel } from "@/models/WorkoutPlan";
+import { DietPlanModel } from "@/models/DietPlan";
 
 export async function GET(req: NextRequest) {
   const userId = getUserIdFromRequest(req);
@@ -11,10 +12,19 @@ export async function GET(req: NextRequest) {
 
   await connectDb();
 
-  let plan = await Plan.findOne({ userId, isActive: true }).sort({ createdAt: -1 });
-  if (!plan) {
-    plan = await Plan.findOne({ userId }).sort({ createdAt: -1 });
+  let workoutPlan = await WorkoutPlanModel.findOne({ userId, isActive: true }).sort({
+    createdAt: -1
+  });
+  if (!workoutPlan) {
+    workoutPlan = await WorkoutPlanModel.findOne({ userId }).sort({ createdAt: -1 });
   }
 
-  return NextResponse.json({ plan });
+  let dietPlan = await DietPlanModel.findOne({ userId, isActive: true }).sort({
+    createdAt: -1
+  });
+  if (!dietPlan) {
+    dietPlan = await DietPlanModel.findOne({ userId }).sort({ createdAt: -1 });
+  }
+
+  return NextResponse.json({ workoutPlan, dietPlan });
 }

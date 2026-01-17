@@ -25,12 +25,20 @@ export function MessagesClient() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activePlan, setActivePlan] = useState<Plan | null>(null);
-  const [filter, setFilter] = useState("all");
+  const [workoutPlan, setWorkoutPlan] = useState<Plan | null>(null);
+  const [dietPlan, setDietPlan] = useState<Plan | null>(null);
+  const [filter, setFilter] = useState<"all" | "workout" | "diet">("all");
 
-  const loadMessages = async (planId?: string) => {
-    const query = planId ? `?planId=${planId}&limit=50` : "?limit=50";
-    const res = await fetch(`/api/messages${query}`);
+  const loadMessages = async (planId?: string, planType?: "workout" | "diet") => {
+    const params = new URLSearchParams();
+    params.set("limit", "50");
+    if (planId) {
+      params.set("planId", planId);
+    }
+    if (planType) {
+      params.set("planType", planType);
+    }
+    const res = await fetch(`/api/messages?${params.toString()}`);
     const data = await res.json();
     if (!res.ok) {
       const apiErrorKey = getApiErrorKey(data.error);
@@ -45,7 +53,8 @@ export function MessagesClient() {
         const planRes = await fetch("/api/plans/active");
         const planData = await planRes.json();
         if (planRes.ok) {
-          setActivePlan(planData.plan ?? null);
+          setWorkoutPlan(planData.workoutPlan ?? null);
+          setDietPlan(planData.dietPlan ?? null);
         }
         await loadMessages();
       } catch (err: any) {
@@ -60,8 +69,12 @@ export function MessagesClient() {
 
   useEffect(() => {
     if (loading) return;
-    const planId = filter === "active" ? activePlan?._id : undefined;
-    loadMessages(planId).catch((err) => setError(err.message ?? t("errorLoadMessages")));
+    const planId =
+      filter === "workout" ? workoutPlan?._id : filter === "diet" ? dietPlan?._id : undefined;
+    const planType = filter === "workout" ? "workout" : filter === "diet" ? "diet" : undefined;
+    loadMessages(planId, planType).catch((err) =>
+      setError(err.message ?? t("errorLoadMessages"))
+    );
   }, [filter]);
 
   const onSubmit = async (event: FormEvent) => {
@@ -79,7 +92,13 @@ export function MessagesClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content: input.trim(),
-          planId: filter === "active" ? activePlan?._id : undefined
+          planId:
+            filter === "workout"
+              ? workoutPlan?._id
+              : filter === "diet"
+              ? dietPlan?._id
+              : undefined,
+          planType: filter === "workout" ? "workout" : filter === "diet" ? "diet" : undefined
         })
       });
 
@@ -113,11 +132,16 @@ export function MessagesClient() {
           <select
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
             value={filter}
-            onChange={(event) => setFilter(event.target.value)}
+            onChange={(event) =>
+              setFilter(event.target.value as "all" | "workout" | "diet")
+            }
           >
             <option value="all">{t("filterAll")}</option>
-            <option value="active" disabled={!activePlan}>
-              {t("filterActivePlan")}
+            <option value="workout" disabled={!workoutPlan}>
+              {t("filterWorkoutPlan")}
+            </option>
+            <option value="diet" disabled={!dietPlan}>
+              {t("filterDietPlan")}
             </option>
           </select>
         </div>

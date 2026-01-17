@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { connectDb } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { UserProfile } from "@/models/UserProfile";
-import { Plan } from "@/models/Plan";
+import { DietPlanModel, type DietPlan } from "@/models/DietPlan";
 import { Message } from "@/models/Message";
 import { askGemini, GEMINI_MODEL } from "@/lib/gemini";
 import { isNonEmptyString } from "@/lib/validation";
@@ -11,13 +11,150 @@ import { languageInstruction, normalizeLanguage } from "@/lib/language";
 import { getOptionLabelKey, translate } from "@/lib/i18n";
 
 const PROMPT_VERSION = "v1.0";
-const MODEL_NAME = GEMINI_MODEL;
+const MODEL_NAME: string = GEMINI_MODEL;
 
 const BASE_SYSTEM_PROMPT = `You are a helpful fitness and nutrition assistant.
 You must NOT give medical advice.
 You must NOT suggest extreme diets, dangerous exercises, supplements, drugs, or steroids.
 Focus on simple, low to moderate intensity workouts and balanced meals.
 Always remind the user that this information is general only and that they should talk to a health professional before following a new workout or diet, especially if they feel strong pain or have health conditions.`;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const isString = (value: unknown): value is string => typeof value === "string";
+
+const isNumber = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every(isString);
+
+const isOptionalString = (value: unknown): value is string | undefined =>
+  typeof value === "undefined" || isString(value);
+
+const isOptionalNumber = (value: unknown): value is number | undefined =>
+  typeof value === "undefined" || isNumber(value);
+
+const validateDietPlan = (value: unknown): DietPlan => {
+  const fail = (reason: string): never => {
+    throw new Error(`Invalid diet plan schema: ${reason}`);
+  };
+
+  if (!isRecord(value)) {
+    fail("expected a JSON object at the root");
+  }
+
+  const record = value as Record<string, unknown>;
+  if (!isString(record.dietType)) {
+    fail("dietType must be a string");
+  }
+  if (!isNumber(record.mealsPerDay)) {
+    fail("mealsPerDay must be a number");
+  }
+  if (!isOptionalNumber(record.calorieTargetApprox)) {
+    fail("calorieTargetApprox must be a number");
+  }
+  if (!isStringArray(record.allergies)) {
+    fail("allergies must be an array of strings");
+  }
+  if (!isStringArray(record.dislikedFoods)) {
+    fail("dislikedFoods must be an array of strings");
+  }
+  if (!isString(record.generalNotes)) {
+    fail("generalNotes must be a string");
+  }
+
+  const days = record.days;
+  if (!Array.isArray(days)) {
+    fail("days must be an array");
+  }
+
+  const dayList = days as unknown[];
+  dayList.forEach((day, dayIndex) => {
+    if (!isRecord(day)) {
+      fail(`days[${dayIndex}] must be an object`);
+    }
+
+    const dayRecord = day as Record<string, unknown>;
+    if (!isNumber(dayRecord.dayIndex)) {
+      fail(`days[${dayIndex}].dayIndex must be a number`);
+    }
+    if (!isString(dayRecord.label)) {
+      fail(`days[${dayIndex}].label must be a string`);
+    }
+    if (!isString(dayRecord.notes)) {
+      fail(`days[${dayIndex}].notes must be a string`);
+    }
+
+    const meals = dayRecord.meals;
+    if (!Array.isArray(meals)) {
+      fail(`days[${dayIndex}].meals must be an array`);
+    }
+
+    const mealList = meals as unknown[];
+    mealList.forEach((meal, mealIndex) => {
+      if (!isRecord(meal)) {
+        fail(`days[${dayIndex}].meals[${mealIndex}] must be an object`);
+      }
+
+      const mealRecord = meal as Record<string, unknown>;
+      if (!isString(mealRecord.mealType)) {
+        fail(`days[${dayIndex}].meals[${mealIndex}].mealType must be a string`);
+      }
+      if (!isOptionalString(mealRecord.time)) {
+        fail(`days[${dayIndex}].meals[${mealIndex}].time must be a string`);
+      }
+      if (!isString(mealRecord.title)) {
+        fail(`days[${dayIndex}].meals[${mealIndex}].title must be a string`);
+      }
+      if (!isString(mealRecord.description)) {
+        fail(`days[${dayIndex}].meals[${mealIndex}].description must be a string`);
+      }
+
+      const items = mealRecord.items;
+      if (!Array.isArray(items)) {
+        fail(`days[${dayIndex}].meals[${mealIndex}].items must be an array`);
+      }
+
+      const itemList = items as unknown[];
+      itemList.forEach((item, itemIndex) => {
+        if (!isRecord(item)) {
+          fail(`days[${dayIndex}].meals[${mealIndex}].items[${itemIndex}] must be an object`);
+        }
+
+        const itemRecord = item as Record<string, unknown>;
+        if (!isString(itemRecord.name)) {
+          fail(
+            `days[${dayIndex}].meals[${mealIndex}].items[${itemIndex}].name must be a string`
+          );
+        }
+        if (!isString(itemRecord.portion)) {
+          fail(
+            `days[${dayIndex}].meals[${mealIndex}].items[${itemIndex}].portion must be a string`
+          );
+        }
+        if (!isOptionalString(itemRecord.notes)) {
+          fail(
+            `days[${dayIndex}].meals[${mealIndex}].items[${itemIndex}].notes must be a string`
+          );
+        }
+      });
+
+      if (!isOptionalNumber(mealRecord.approxCalories)) {
+        fail(`days[${dayIndex}].meals[${mealIndex}].approxCalories must be a number`);
+      }
+      if (!isOptionalString(mealRecord.prepNotes)) {
+        fail(`days[${dayIndex}].meals[${mealIndex}].prepNotes must be a string`);
+      }
+      if (!isOptionalString(mealRecord.dayPartNotes)) {
+        fail(`days[${dayIndex}].meals[${mealIndex}].dayPartNotes must be a string`);
+      }
+    });
+  });
+
+  return value as DietPlan;
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,32 +192,105 @@ Profile:
 - Calorie target (approx): ${profile.calorieTarget ?? "unspecified"}
 ${note ? `Extra note: ${note}` : ""}
 
-Output format:
-- Provide a simple daily plan or 3-5 day rotation
-- Include meal ideas and balanced snacks
-- Emphasize hydration and whole foods
-- Keep portion guidance general (no strict calorie math)
-- End with the reminder about general information and seeing a professional for pain/conditions`;
+Output requirements:
+- Return ONLY valid JSON. No markdown, no code fences, no extra text.
+- JSON keys must match exactly the schema below.
+- Use the requested language for all string values, but keep keys in English.
+- Keep the plan balanced, teen-safe, and easy to follow.
+- Include a clear safety reminder in generalNotes.
 
-    const dietPlanText = await askGemini([
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt }
-    ]);
+JSON schema example:
+{
+  "dietType": "omnivore",
+  "mealsPerDay": 3,
+  "calorieTargetApprox": 2000,
+  "allergies": ["peanuts"],
+  "dislikedFoods": ["mushrooms"],
+  "generalNotes": "string",
+  "days": [
+    {
+      "dayIndex": 1,
+      "label": "Day 1 - Balanced Day",
+      "notes": "string",
+      "meals": [
+        {
+          "mealType": "breakfast",
+          "time": "07:30",
+          "title": "Oatmeal with fruit",
+          "description": "string",
+          "items": [
+            {
+              "name": "Rolled oats",
+              "portion": "1/2 cup",
+              "notes": "string"
+            }
+          ],
+          "approxCalories": 350,
+          "prepNotes": "string",
+          "dayPartNotes": "string"
+        }
+      ]
+    }
+  ]
+}`;
 
-    let plan = await Plan.findOne({ userId, isActive: true }).sort({ createdAt: -1 });
+    const maxAttempts = 3;
+    let dietPlan: DietPlan | null = null;
+    let normalizedPlanText = "";
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const dietPlanText = await askGemini(
+          [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          { responseMimeType: "application/json" }
+        );
+
+        let parsedPlan: unknown;
+        try {
+          parsedPlan = JSON.parse(dietPlanText);
+        } catch (parseError) {
+          console.error("Diet JSON parse error", parseError);
+          throw new Error("Invalid JSON response from model");
+        }
+
+        if (!parsedPlan || typeof parsedPlan !== "object" || Array.isArray(parsedPlan)) {
+          throw new Error("Invalid JSON response from model");
+        }
+
+        dietPlan = validateDietPlan(parsedPlan);
+        normalizedPlanText = JSON.stringify(dietPlan, null, 2);
+        lastError = undefined;
+        break;
+      } catch (error) {
+        lastError = error;
+        console.error(`Generate diet attempt ${attempt} failed`, error);
+      }
+    }
+
+    if (!dietPlan || !normalizedPlanText) {
+      throw lastError ?? new Error("Failed to generate diet");
+    }
+
+    let plan = await DietPlanModel.findOne({ userId, isActive: true }).sort({ createdAt: -1 });
 
     if (!plan) {
-      plan = await Plan.create({
+      plan = await DietPlanModel.create({
         userId,
         title: planTitle,
         description: planDescription,
-        dietPlanText,
+        dietPlanText: normalizedPlanText,
+        dietPlan,
         model: MODEL_NAME,
         promptVersion: PROMPT_VERSION,
         isActive: true
       });
     } else {
-      plan.dietPlanText = dietPlanText;
+      plan.dietPlanText = normalizedPlanText;
+      plan.set("dietPlan", dietPlan);
       plan.title = plan.title || planTitle;
       plan.description = plan.description || planDescription;
       plan.set("model", MODEL_NAME);
@@ -89,7 +299,7 @@ Output format:
       await plan.save();
     }
 
-    await Plan.updateMany(
+    await DietPlanModel.updateMany(
       { userId, _id: { $ne: plan._id }, isActive: true },
       { isActive: false }
     );
@@ -98,20 +308,23 @@ Output format:
       {
         userId,
         planId: plan._id,
+        planType: "DietPlan",
         role: "system",
         content: systemPrompt
       },
       {
         userId,
         planId: plan._id,
+        planType: "DietPlan",
         role: "user",
         content: userPrompt
       },
       {
         userId,
         planId: plan._id,
+        planType: "DietPlan",
         role: "assistant",
-        content: dietPlanText,
+        content: normalizedPlanText,
         model: MODEL_NAME
       }
     ]);

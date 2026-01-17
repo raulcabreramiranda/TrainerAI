@@ -3,7 +3,8 @@ import mongoose, { Schema, type Model, type InferSchemaType } from "mongoose";
 const messageSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    planId: { type: Schema.Types.ObjectId, ref: "Plan" },
+    planId: { type: Schema.Types.ObjectId, refPath: "planType" },
+    planType: { type: String, enum: ["WorkoutPlan", "DietPlan"] },
     role: { type: String, enum: ["user", "assistant", "system"], required: true },
     content: { type: String, required: true },
     model: { type: String }

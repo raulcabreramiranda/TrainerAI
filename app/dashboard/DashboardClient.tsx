@@ -20,15 +20,14 @@ type Plan = {
   _id: string;
   title?: string;
   description?: string;
-  workoutPlanText?: string;
-  dietPlanText?: string;
   createdAt?: string;
 };
 
 export function DashboardClient() {
   const t = useTranslations();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [plan, setPlan] = useState<Plan | null>(null);
+  const [workoutPlan, setWorkoutPlan] = useState<Plan | null>(null);
+  const [dietPlan, setDietPlan] = useState<Plan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,7 +53,8 @@ export function DashboardClient() {
         }
 
         setProfile(profileData.profile);
-        setPlan(planData.plan);
+        setWorkoutPlan(planData.workoutPlan ?? null);
+        setDietPlan(planData.dietPlan ?? null);
       } catch (err: any) {
         setError(err.message ?? t("errorGeneric"));
       } finally {
@@ -147,34 +147,54 @@ export function DashboardClient() {
             </Link>
           </div>
         </div>
-        {plan ? (
-          <div className="mt-4 space-y-2 text-sm text-slate-700">
-            <p className="font-semibold text-slate-800">
-              {plan.title ?? t("activePlanDefaultTitle")}
+        <div className="mt-4 space-y-4 text-sm text-slate-700">
+          <div className="rounded-xl border border-slate-100 bg-white/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {t("workout")}
             </p>
-            <p>{plan.description ?? t("activePlanDefaultDesc")}</p>
-            <div className="flex flex-wrap gap-2 pt-2">
-              <Link href="/generate-workout">
-                <Button variant="secondary">{t("viewWorkout")}</Button>
-              </Link>
-              <Link href="/generate-diet">
-                <Button variant="secondary">{t("viewDiet")}</Button>
-              </Link>
-            </div>
+            {workoutPlan ? (
+              <div className="mt-2 space-y-2">
+                <p className="font-semibold text-slate-800">
+                  {workoutPlan.title ?? t("workoutPlanDefaultTitle")}
+                </p>
+                <p>{workoutPlan.description ?? t("activePlanDefaultDesc")}</p>
+                <Link href="/generate-workout">
+                  <Button variant="secondary">{t("viewWorkout")}</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-2 space-y-2">
+                <p className="text-sm text-slate-500">{t("noPlanYet")}</p>
+                <Link href="/generate-workout">
+                  <Button variant="secondary">{t("generateWorkoutPlan")}</Button>
+                </Link>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="mt-4 space-y-3">
-            <p className="text-sm text-slate-500">{t("noPlanYet")}</p>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/generate-workout">
-                <Button variant="secondary">{t("generateWorkoutPlan")}</Button>
-              </Link>
-              <Link href="/generate-diet">
-                <Button variant="secondary">{t("generateDietPlan")}</Button>
-              </Link>
-            </div>
+          <div className="rounded-xl border border-slate-100 bg-white/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {t("diet")}
+            </p>
+            {dietPlan ? (
+              <div className="mt-2 space-y-2">
+                <p className="font-semibold text-slate-800">
+                  {dietPlan.title ?? t("dietPlanDefaultTitle")}
+                </p>
+                <p>{dietPlan.description ?? t("activePlanDefaultDesc")}</p>
+                <Link href="/generate-diet">
+                  <Button variant="secondary">{t("viewDiet")}</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-2 space-y-2">
+                <p className="text-sm text-slate-500">{t("noPlanYet")}</p>
+                <Link href="/generate-diet">
+                  <Button variant="secondary">{t("generateDietPlan")}</Button>
+                </Link>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </Card>
     </div>
   );

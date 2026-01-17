@@ -48,8 +48,8 @@ export function GenerateWorkoutClient() {
         }
 
         setProfile(profileData.profile);
-        if (planData.plan?.workoutPlanText) {
-          setPlan(planData.plan);
+        if (planData.workoutPlan?.workoutPlanText) {
+          setPlan(planData.workoutPlan);
         }
       } catch (err: any) {
         setError(err.message ?? t("errorGeneric"));

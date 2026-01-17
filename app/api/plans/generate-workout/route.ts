@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { connectDb } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { UserProfile } from "@/models/UserProfile";
-import { Plan } from "@/models/Plan";
+import { WorkoutPlanModel, type WorkoutPlan } from "@/models/WorkoutPlan";
 import { Message } from "@/models/Message";
 import { askGemini, GEMINI_MODEL } from "@/lib/gemini";
 import { isNonEmptyString } from "@/lib/validation";
@@ -12,29 +12,6 @@ import { getOptionLabelKey, translate } from "@/lib/i18n";
 
 const PROMPT_VERSION = "v1.0";
 const MODEL_NAME: string = GEMINI_MODEL;
-
-type WorkoutPlan = {
-  location: "home" | "gym" | "outdoor";
-  availableEquipment: string[];
-  generalNotes: string;
-  days: {
-    dayIndex: number;
-    label: string;
-    focus: string;
-    isRestDay: boolean;
-    notes: string;
-    exercises: {
-      name: string;
-      equipment: string;
-      sets: number;
-      reps: string;
-      restSeconds: number;
-      tempo?: string;
-      order: number;
-      notes?: string;
-    }[];
-  }[];
-};
 
 const allowedLocations = new Set(["home", "gym", "outdoor"]);
 
@@ -268,10 +245,12 @@ JSON schema example:
       throw lastError ?? new Error("Failed to generate workout");
     }
 
-    let plan = await Plan.findOne({ userId, isActive: true }).sort({ createdAt: -1 });
+    let plan = await WorkoutPlanModel.findOne({ userId, isActive: true }).sort({
+      createdAt: -1
+    });
 
     if (!plan) {
-      plan = await Plan.create({
+      plan = await WorkoutPlanModel.create({
         userId,
         title: planTitle,
         description: planDescription,
@@ -292,7 +271,7 @@ JSON schema example:
       await plan.save();
     }
 
-    await Plan.updateMany(
+    await WorkoutPlanModel.updateMany(
       { userId, _id: { $ne: plan._id }, isActive: true },
       { isActive: false }
     );
@@ -301,18 +280,21 @@ JSON schema example:
       {
         userId,
         planId: plan._id,
+        planType: "WorkoutPlan",
         role: "system",
         content: systemPrompt
       },
       {
         userId,
         planId: plan._id,
+        planType: "WorkoutPlan",
         role: "user",
         content: userPrompt
       },
       {
         userId,
         planId: plan._id,
+        planType: "WorkoutPlan",
         role: "assistant",
         content: normalizedPlanText,
         model: MODEL_NAME
