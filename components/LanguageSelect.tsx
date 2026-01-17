@@ -37,9 +37,6 @@ export function LanguageSelect({ compact = false }: { compact?: boolean }) {
 
   return (
     <div className={compact ? "" : "flex items-center gap-2"}>
-      {compact ? null : (
-        <span className="text-xs font-semibold text-slate-600">{t("languageLabel")}</span>
-      )}
       <select
         className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs"
         value={language}
