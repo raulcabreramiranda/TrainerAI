@@ -282,30 +282,15 @@ JSON schema example:
       { isActive: false }
     );
 
-    await Message.create([
-      {
-        userId,
-        planId: plan._id,
-        planType: "WorkoutPlan",
-        role: "system",
-        content: systemPrompt
-      },
-      {
-        userId,
-        planId: plan._id,
-        planType: "WorkoutPlan",
-        role: "user",
-        content: userPrompt
-      },
-      {
-        userId,
-        planId: plan._id,
-        planType: "WorkoutPlan",
-        role: "assistant",
-        content: normalizedPlanText,
-        model: planModel
-      }
-    ]);
+    await Message.create({
+      userId,
+      planId: plan._id,
+      planType: "WorkoutPlan",
+      systemContent: systemPrompt,
+      userContent: userPrompt,
+      assistantContent: normalizedPlanText,
+      model: planModel
+    });
 
     return NextResponse.json({ plan });
   } catch (error) {

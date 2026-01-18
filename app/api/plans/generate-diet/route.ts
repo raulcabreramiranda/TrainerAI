@@ -310,30 +310,15 @@ JSON schema example:
       { isActive: false }
     );
 
-    await Message.create([
-      {
-        userId,
-        planId: plan._id,
-        planType: "DietPlan",
-        role: "system",
-        content: systemPrompt
-      },
-      {
-        userId,
-        planId: plan._id,
-        planType: "DietPlan",
-        role: "user",
-        content: userPrompt
-      },
-      {
-        userId,
-        planId: plan._id,
-        planType: "DietPlan",
-        role: "assistant",
-        content: normalizedPlanText,
-        model: planModel
-      }
-    ]);
+    await Message.create({
+      userId,
+      planId: plan._id,
+      planType: "DietPlan",
+      systemContent: systemPrompt,
+      userContent: userPrompt,
+      assistantContent: normalizedPlanText,
+      model: planModel
+    });
 
     return NextResponse.json({ plan });
   } catch (error) {

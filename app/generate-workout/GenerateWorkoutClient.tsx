@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Disclaimer } from "@/components/Disclaimer";
@@ -54,10 +54,16 @@ export function GenerateWorkoutClient() {
   const [plan, setPlan] = useState<Plan | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [imageUpdatingKey, setImageUpdatingKey] = useState<string | null>(null);
+  const [showRating, setShowRating] = useState(false);
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [ratingLoading, setRatingLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [justCreatedPlan, setJustCreatedPlan] = useState(false);
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const planRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -139,6 +145,10 @@ export function GenerateWorkoutClient() {
       }
 
       setPlan(data.plan);
+      setShowRating(true);
+      setRatingSubmitted(false);
+      setShowModal(false);
+      setJustCreatedPlan(true);
     } catch (err: any) {
       setError(err.message ?? t("errorGenerateWorkout"));
     } finally {
@@ -150,6 +160,14 @@ export function GenerateWorkoutClient() {
     setActiveTab("overview");
   }, [plan?.workoutPlan?.days?.length]);
 
+  useEffect(() => {
+    if (!justCreatedPlan) return;
+    requestAnimationFrame(() => {
+      planRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    setJustCreatedPlan(false);
+  }, [justCreatedPlan, plan?._id]);
+
   if (loading) {
     return <p className="text-sm text-slate-500">{t("loading")}</p>;
   }
@@ -159,80 +177,158 @@ export function GenerateWorkoutClient() {
   const fallbackImage =
     "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='640' height='480'><rect width='100%25' height='100%25' fill='%23f1f5f9'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='Arial' font-size='20'>Exercise image</text></svg>";
 
+  const submitRating = async (value: number) => {
+    if (!plan?._id) return;
+    setRatingLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/messages/rate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: plan._id,
+          planType: "WorkoutPlan",
+          rating: value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const apiErrorKey = getApiErrorKey(data.error);
+        throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorSaveRating"));
+      }
+
+      setRatingSubmitted(true);
+    } catch (err: any) {
+      setError(err.message ?? t("errorSaveRating"));
+    } finally {
+      setRatingLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <Card>
-        <p className="text-sm font-semibold text-slate-800">{t("profileSnapshotTitle")}</p>
-        {profile ? (
-          <div className="mt-3 space-y-2 text-sm text-slate-700">
-            <p>
-              <span className="font-semibold text-slate-800">{t("goalLabel")}</span>{" "}
-              {getOptionLabelKey("goal", profile.goal)
-                ? t(getOptionLabelKey("goal", profile.goal)!)
-                : profile.goal}
-            </p>
-            <p>
-              <span className="font-semibold text-slate-800">{t("experienceLabel")}</span>{" "}
-              {getOptionLabelKey("experience", profile.experienceLevel)
-                ? t(getOptionLabelKey("experience", profile.experienceLevel)!)
-                : profile.experienceLevel}
-            </p>
-            <p>
-              <span className="font-semibold text-slate-800">{t("daysPerWeekLabel")}</span>{" "}
-              {profile.daysPerWeek}
-            </p>
-            <p>
-              <span className="font-semibold text-slate-800">{t("locationLabel")}</span>{" "}
-              {profile.preferredLocation
-                ? getOptionLabelKey("location", profile.preferredLocation)
-                  ? t(getOptionLabelKey("location", profile.preferredLocation)!)
-                  : profile.preferredLocation
-                : t("unspecified")}
-            </p>
-            <p>
-              <span className="font-semibold text-slate-800">{t("equipmentLabel")}</span>{" "}
-              {(profile.availableEquipment || []).join(", ") || t("none")}
-            </p>
-            <p>
-              <span className="font-semibold text-slate-800">{t("limitationsLabel")}</span>{" "}
-              {profile.injuriesOrLimitations ?? t("none")}
-            </p>
-          </div>
-        ) : (
-          <p className="mt-3 text-sm text-slate-500">{t("profileMissing")}</p>
-        )}
-      </Card>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-display text-3xl text-slate-900">{t("workoutTitle")}</p>
+          <p className="text-sm text-slate-600">{t("workoutSubtitle")}</p>
+        </div>
+        <Button type="button" onClick={() => setShowModal(true)}>
+          {t("workoutSetupCta")}
+        </Button>
+      </div>
+      {!showModal && error ? (
+        <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</p>
+      ) : null}
 
-      <Card>
-        <form className="space-y-4" onSubmit={onSubmit}>
-          <label className="text-sm font-semibold text-slate-800" htmlFor="note">
-            {t("extraWorkoutNoteLabel")}
-          </label>
-          <textarea
-            id="note"
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
-            rows={4}
-            placeholder={t("extraWorkoutNotePlaceholder")}
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-          />
-          <Disclaimer />
-          {error ? (
-            <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
-              {error}
-            </p>
-          ) : null}
-          <Button type="submit" disabled={submitting}>
-            {submitting ? t("generating") : t("generateWorkoutPlan")}
-          </Button>
-        </form>
-      </Card>
+      {showModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6">
+          <div className="flex w-full max-w-3xl flex-col rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  {t("workoutSetupTitle")}
+                </p>
+                <p className="text-xs text-slate-500">{t("workoutSetupSubtitle")}</p>
+              </div>
+              <button
+                type="button"
+                className="text-sm font-semibold text-slate-500 hover:text-slate-700"
+                onClick={() => setShowModal(false)}
+              >
+                {t("close")}
+              </button>
+            </div>
+            <div className="mt-4 max-h-[70vh] space-y-6 overflow-y-auto pr-2">
+              <Card>
+                <p className="text-sm font-semibold text-slate-800">
+                  {t("profileSnapshotTitle")}
+                </p>
+                {profile ? (
+                  <div className="mt-3 space-y-2 text-sm text-slate-700">
+                    <p>
+                      <span className="font-semibold text-slate-800">{t("goalLabel")}</span>{" "}
+                      {getOptionLabelKey("goal", profile.goal)
+                        ? t(getOptionLabelKey("goal", profile.goal)!)
+                        : profile.goal}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-slate-800">
+                        {t("experienceLabel")}
+                      </span>{" "}
+                      {getOptionLabelKey("experience", profile.experienceLevel)
+                        ? t(getOptionLabelKey("experience", profile.experienceLevel)!)
+                        : profile.experienceLevel}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-slate-800">
+                        {t("daysPerWeekLabel")}
+                      </span>{" "}
+                      {profile.daysPerWeek}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-slate-800">
+                        {t("locationLabel")}
+                      </span>{" "}
+                      {profile.preferredLocation
+                        ? getOptionLabelKey("location", profile.preferredLocation)
+                          ? t(getOptionLabelKey("location", profile.preferredLocation)!)
+                          : profile.preferredLocation
+                        : t("unspecified")}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-slate-800">
+                        {t("equipmentLabel")}
+                      </span>{" "}
+                      {(profile.availableEquipment || []).join(", ") || t("none")}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-slate-800">
+                        {t("limitationsLabel")}
+                      </span>{" "}
+                      {profile.injuriesOrLimitations ?? t("none")}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-slate-500">{t("profileMissing")}</p>
+                )}
+              </Card>
+
+              <Card>
+                <form className="space-y-4" onSubmit={onSubmit}>
+                  <label className="text-sm font-semibold text-slate-800" htmlFor="note">
+                    {t("extraWorkoutNoteLabel")}
+                  </label>
+                  <textarea
+                    id="note"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
+                    rows={4}
+                    placeholder={t("extraWorkoutNotePlaceholder")}
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                  />
+                  <Disclaimer />
+                  {error ? (
+                    <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                      {error}
+                    </p>
+                  ) : null}
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? t("generating") : t("generateWorkoutPlan")}
+                  </Button>
+                </form>
+              </Card>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {structuredPlan ? (
-        <Card>
-          <p className="text-sm font-semibold text-slate-800">
-            {plan?.title ?? t("workoutPlanDefaultTitle")}
-          </p>
+        <div ref={planRef}>
+          <Card>
+            <p className="text-sm font-semibold text-slate-800">
+              {plan?.title ?? t("workoutPlanDefaultTitle")}
+            </p>
           <div className="mt-4">
             <div className="flex flex-wrap gap-2">
               <button
@@ -447,16 +543,62 @@ export function GenerateWorkoutClient() {
               })}
             </div>
           )}
-        </Card>
+          </Card>
+        </div>
       ) : plan?.workoutPlanText ? (
-        <Card>
-          <p className="text-sm font-semibold text-slate-800">
-            {plan.title ?? t("workoutPlanDefaultTitle")}
-          </p>
-          <pre className="mt-3 whitespace-pre-wrap text-sm text-slate-700">
-            {plan.workoutPlanText}
-          </pre>
-        </Card>
+        <div ref={planRef}>
+          <Card>
+            <p className="text-sm font-semibold text-slate-800">
+              {plan.title ?? t("workoutPlanDefaultTitle")}
+            </p>
+            <pre className="mt-3 whitespace-pre-wrap text-sm text-slate-700">
+              {plan.workoutPlanText}
+            </pre>
+          </Card>
+        </div>
+      ) : null}
+      {showRating ? (
+        <div className="fixed bottom-6 right-6 z-50 w-72 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">{t("ratingTitle")}</p>
+              <p className="text-xs text-slate-500">{t("ratingSubtitle")}</p>
+            </div>
+            <button
+              type="button"
+              className="rounded-full p-1 text-slate-400 hover:text-slate-600"
+              onClick={() => setShowRating(false)}
+              aria-label={t("ratingDismiss")}
+            >
+              <span className="text-lg leading-none">×</span>
+            </button>
+          </div>
+          {ratingSubmitted ? (
+            <p className="mt-3 text-sm text-slate-700">{t("ratingThanks")}</p>
+          ) : (
+            <div className="mt-3 flex gap-2">
+              {[1, 2, 3, 4, 5].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className="rounded-full p-1 text-slate-300 hover:text-amber-400"
+                  onClick={() => submitRating(value)}
+                  disabled={ratingLoading}
+                  aria-label={`${t("ratingLabel")} ${value}`}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-6 w-6"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 3.5l2.7 5.47 6.04.88-4.37 4.26 1.03 6.02L12 17.77l-5.4 2.86 1.03-6.02-4.37-4.26 6.04-.88L12 3.5z" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       ) : null}
     </div>
   );

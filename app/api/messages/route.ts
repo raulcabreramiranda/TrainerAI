@@ -58,8 +58,19 @@ export async function GET(req: NextRequest) {
       .sort({ createdAt: -1 })
       .limit(limit);
 
+    const response = messages.map((message) => ({
+      _id: message._id.toString(),
+      planType: message.planType ?? null,
+      systemContent: message.systemContent ?? "",
+      userContent: message.userContent ?? "",
+      assistantContent: message.assistantContent ?? "",
+      rating: message.rating ?? null,
+      model: message.model ?? null,
+      createdAt: message.createdAt ? message.createdAt.toISOString() : null
+    }));
+
     return NextResponse.json({
-      messages: messages.reverse()
+      messages: response
     });
   } catch (error) {
     console.error("Fetch messages error", error);
@@ -190,11 +201,16 @@ export async function POST(req: NextRequest) {
 
     const chatMessages: GeminiMessage[] = history
       .reverse()
-      .filter((message) => message.role !== "system")
-      .map((message) => ({
-        role: message.role === "assistant" ? "assistant" : "user",
-        content: message.content
-      }));
+      .flatMap((message) => {
+        const items: GeminiMessage[] = [];
+        if (message.userContent) {
+          items.push({ role: "user", content: message.userContent });
+        }
+        if (message.assistantContent) {
+          items.push({ role: "assistant", content: message.assistantContent });
+        }
+        return items;
+      });
 
     chatMessages.push({ role: "user", content: body.content.trim() });
 
@@ -206,26 +222,18 @@ export async function POST(req: NextRequest) {
     const planIdForMessage = activePlan?._id ?? undefined;
     const planTypeForMessage = activePlanType;
 
-    const saved = await Message.create([
-      {
-        userId,
-        planId: planIdForMessage,
-        planType: planTypeForMessage,
-        role: "user",
-        content: body.content.trim()
-      },
-      {
-        userId,
-        planId: planIdForMessage,
-        planType: planTypeForMessage,
-        role: "assistant",
-        content: reply,
-        model: usedModel
-      }
-    ]);
+    const saved = await Message.create({
+      userId,
+      planId: planIdForMessage,
+      planType: planTypeForMessage,
+      systemContent: systemMessage.content,
+      userContent: body.content.trim(),
+      assistantContent: reply,
+      model: usedModel
+    });
 
     return NextResponse.json({
-      messages: saved
+      messages: [saved]
     });
   } catch (error) {
     console.error("Send message error", error);

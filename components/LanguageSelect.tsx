@@ -10,9 +10,9 @@ export function LanguageSelect({ compact = false }: { compact?: boolean }) {
   const [saving, setSaving] = useState(false);
 
   const labels: Record<AppLanguage, string> = {
-    en: t("languageEn"),
-    es: t("languageEs"),
-    "pt-BR": t("languagePtBr")
+    en: "EN",
+    es: "ES",
+    "pt-BR": "PT"
   };
 
   const onChange = async (value: string) => {
@@ -38,7 +38,7 @@ export function LanguageSelect({ compact = false }: { compact?: boolean }) {
   return (
     <div className={compact ? "" : "flex items-center gap-2"}>
       <select
-        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs"
+        className="w-20 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs"
         value={language}
         onChange={(event) => onChange(event.target.value)}
         disabled={saving}

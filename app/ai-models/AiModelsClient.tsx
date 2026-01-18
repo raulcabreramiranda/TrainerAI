@@ -16,19 +16,11 @@ type AiModel = {
   updatedAt?: string;
 };
 
-type EditValues = {
-  name: string;
-  type: string;
-  enabled: boolean;
-};
-
 export function AiModelsClient() {
   const t = useTranslations();
   const [models, setModels] = useState<AiModel[]>([]);
-  const [editValues, setEditValues] = useState<Record<string, EditValues>>({});
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState("GEMINI");
@@ -57,18 +49,6 @@ export function AiModelsClient() {
 
     load();
   }, []);
-
-  useEffect(() => {
-    const nextValues: Record<string, EditValues> = {};
-    models.forEach((model) => {
-      nextValues[model._id] = {
-        name: model.name,
-        type: model.type || "GEMINI",
-        enabled: model.enabled !== false
-      };
-    });
-    setEditValues(nextValues);
-  }, [models]);
 
   const onCreate = async (event: FormEvent) => {
     event.preventDefault();
@@ -101,15 +81,7 @@ export function AiModelsClient() {
     }
   };
 
-  const onUpdate = async (id: string) => {
-    const values = editValues[id];
-    if (!values) return;
-    const trimmed = values.name.trim();
-    if (!trimmed) {
-      setError(t("errorModelNameRequired"));
-      return;
-    }
-
+  const onToggle = async (id: string, enabled: boolean) => {
     setSavingId(id);
     setError(null);
 
@@ -117,11 +89,7 @@ export function AiModelsClient() {
       const res = await fetch(`/api/ai-models/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: trimmed,
-          type: values.type,
-          enabled: values.enabled
-        })
+        body: JSON.stringify({ enabled })
       });
       const data = await res.json();
       if (!res.ok) {
@@ -134,24 +102,6 @@ export function AiModelsClient() {
       setError(err.message ?? t("errorSaveAiModels"));
     } finally {
       setSavingId(null);
-    }
-  };
-
-  const onDelete = async (id: string) => {
-    setDeletingId(id);
-    setError(null);
-    try {
-      const res = await fetch(`/api/ai-models/${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) {
-        const apiErrorKey = getApiErrorKey(data.error);
-        throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorDeleteAiModels"));
-      }
-      await loadModels();
-    } catch (err: any) {
-      setError(err.message ?? t("errorDeleteAiModels"));
-    } finally {
-      setDeletingId(null);
     }
   };
 
@@ -219,93 +169,48 @@ export function AiModelsClient() {
           {models.length === 0 ? (
             <p className="text-sm text-slate-500">{t("noAiModels")}</p>
           ) : (
-            models.map((model) => {
-              const values = editValues[model._id] ?? {
-                name: model.name,
-                type: model.type || "GEMINI",
-                enabled: model.enabled !== false
-              };
-              return (
-                <div
-                  key={model._id}
-                  className="grid gap-4 rounded-2xl border border-slate-100 bg-white/70 p-4 md:grid-cols-[2fr_1fr_1fr_1fr_auto]"
-                >
-                  <label className="text-sm text-slate-700">
-                    <span className="font-semibold text-slate-800">{t("aiModelNameLabel")}</span>
-                    <input
-                      type="text"
-                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
-                      value={values.name}
-                      onChange={(event) =>
-                        setEditValues((prev) => ({
-                          ...prev,
-                          [model._id]: { ...values, name: event.target.value }
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className="text-sm text-slate-700">
-                    <span className="font-semibold text-slate-800">{t("aiModelTypeLabel")}</span>
-                    <select
-                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
-                      value={values.type}
-                      onChange={(event) =>
-                        setEditValues((prev) => ({
-                          ...prev,
-                          [model._id]: { ...values, type: event.target.value }
-                        }))
-                      }
-                    >
-                      <option value="GEMINI">{t("aiModelTypeGemini")}</option>
-                      <option value="OPENROUTER">{t("aiModelTypeOpenRouter")}</option>
-                      <option value="MISTRAL">{t("aiModelTypeMistral")}</option>
-                      <option value="GROQ">{t("aiModelTypeGroq")}</option>
-                      <option value="CEREBRAS">{t("aiModelTypeCerebras")}</option>
-                    </select>
-                  </label>
-                  <label className="text-sm text-slate-700">
-                    <span className="font-semibold text-slate-800">{t("aiModelEnabledLabel")}</span>
-                    <select
-                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
-                      value={values.enabled ? "enabled" : "disabled"}
-                      onChange={(event) =>
-                        setEditValues((prev) => ({
-                          ...prev,
-                          [model._id]: {
-                            ...values,
-                            enabled: event.target.value === "enabled"
-                          }
-                        }))
-                      }
-                    >
-                      <option value="enabled">{t("aiModelEnabledOn")}</option>
-                      <option value="disabled">{t("aiModelEnabledOff")}</option>
-                    </select>
-                  </label>
-                  <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                    <span className="font-semibold text-slate-800">{t("aiModelUsageLabel")}</span>{" "}
-                    {model.usageCount}
-                  </div>
-                  <div className="flex flex-wrap items-end gap-2">
-                    <Button
-                      type="button"
-                      onClick={() => onUpdate(model._id)}
-                      disabled={savingId === model._id}
-                    >
-                      {savingId === model._id ? t("saving") : t("save")}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => onDelete(model._id)}
-                      disabled={deletingId === model._id}
-                    >
-                      {deletingId === model._id ? t("deleting") : t("delete")}
-                    </Button>
-                  </div>
-                </div>
-              );
-            })
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-700">
+                <thead className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="px-3 py-2">{t("aiModelNameLabel")}</th>
+                    <th className="px-3 py-2">{t("aiModelTypeLabel")}</th>
+                    <th className="px-3 py-2">{t("aiModelUsageLabel")}</th>
+                    <th className="px-3 py-2">{t("aiModelEnabledLabel")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {models.map((model) => {
+                    const enabled = model.enabled !== false;
+                    return (
+                      <tr key={model._id} className="border-b border-slate-100 last:border-b-0">
+                        <td className="px-3 py-3 font-semibold text-slate-900">{model.name}</td>
+                        <td className="px-3 py-3">{model.type || "GEMINI"}</td>
+                        <td className="px-3 py-3">{model.usageCount}</td>
+                        <td className="px-3 py-3">
+                          <label className="inline-flex items-center gap-2 text-xs text-slate-600">
+                            <span className="sr-only">{t("aiModelEnabledLabel")}</span>
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={enabled}
+                              onChange={() => onToggle(model._id, !enabled)}
+                              disabled={savingId === model._id}
+                            />
+                            <span className="relative h-6 w-11 rounded-full bg-slate-200 transition peer-checked:bg-emerald-500 peer-disabled:opacity-60">
+                              <span className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5" />
+                            </span>
+                            <span className="font-semibold text-slate-700">
+                              {enabled ? t("aiModelEnabledOn") : t("aiModelEnabledOff")}
+                            </span>
+                          </label>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </Card>
