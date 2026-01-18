@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { connectDb } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { UserProfile } from "@/models/UserProfile";
+import { User } from "@/models/User";
 import {
   clampNumber,
   isNonEmptyString,
@@ -18,7 +19,8 @@ export async function GET(req: NextRequest) {
   await connectDb();
 
   const profile = await UserProfile.findOne({ userId });
-  return NextResponse.json({ profile });
+  const user = await User.findById(userId).select("role");
+  return NextResponse.json({ profile, role: user?.role ?? null });
 }
 
 export async function PUT(req: NextRequest) {

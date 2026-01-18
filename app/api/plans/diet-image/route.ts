@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { connectDb } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { DietPlanModel } from "@/models/DietPlan";
-import { askGemini, GEMINI_MODEL } from "@/lib/gemini";
+import { askGemini } from "@/lib/gemini";
 
 const BASE_SYSTEM_PROMPT = `You provide a single safe, public image URL.
 Return only JSON with the exact key "imageUrl".
@@ -46,7 +46,7 @@ Description: ${meal.description}
 
 Return JSON only: {"imageUrl":"https://..."}`;
 
-    const responseText = await askGemini(
+    const { text: responseText, model: usedModel } = await askGemini(
       [
         { role: "system", content: BASE_SYSTEM_PROMPT },
         { role: "user", content: prompt }
@@ -87,7 +87,7 @@ Return JSON only: {"imageUrl":"https://..."}`;
     plan.dietPlanText = JSON.stringify(plan.dietPlan, null, 2);
     await plan.save();
 
-    return NextResponse.json({ plan, model: GEMINI_MODEL });
+    return NextResponse.json({ plan, model: usedModel });
   } catch (error) {
     console.error("Update diet image error", error);
     return NextResponse.json({ error: "Failed to update image." }, { status: 500 });

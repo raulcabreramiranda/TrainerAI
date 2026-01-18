@@ -209,11 +209,12 @@ JSON schema example:
     const maxAttempts = 3;
     let workoutPlan: WorkoutPlan | null = null;
     let normalizedPlanText = "";
+    let planModel = MODEL_NAME;
     let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
-        const workoutPlanText = await askGemini(
+        const { text: workoutPlanText, model: usedModel } = await askGemini(
           [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
@@ -236,6 +237,7 @@ JSON schema example:
         console.dir({parsedPlan}, {depth: null});
         workoutPlan = validateWorkoutPlan(parsedPlan);
         normalizedPlanText = JSON.stringify(workoutPlan, null, 2);
+        planModel = usedModel;
         lastError = undefined;
         break;
       } catch (error) {
@@ -259,7 +261,7 @@ JSON schema example:
         description: planDescription,
         workoutPlanText: normalizedPlanText,
         workoutPlan,
-        model: MODEL_NAME,
+        model: planModel,
         promptVersion: PROMPT_VERSION,
         isActive: true
       });
@@ -268,7 +270,7 @@ JSON schema example:
       plan.set("workoutPlan", workoutPlan);
       plan.title = plan.title || planTitle;
       plan.description = plan.description || planDescription;
-      plan.set("model", MODEL_NAME);
+      plan.set("model", planModel);
       plan.promptVersion = PROMPT_VERSION;
       plan.isActive = true;
       await plan.save();
@@ -300,7 +302,7 @@ JSON schema example:
         planType: "WorkoutPlan",
         role: "assistant",
         content: normalizedPlanText,
-        model: MODEL_NAME
+        model: planModel
       }
     ]);
 

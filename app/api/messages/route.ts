@@ -5,7 +5,7 @@ import { Message } from "@/models/Message";
 import { UserProfile } from "@/models/UserProfile";
 import { WorkoutPlanModel } from "@/models/WorkoutPlan";
 import { DietPlanModel } from "@/models/DietPlan";
-import { askGemini, GEMINI_MODEL, type GeminiMessage } from "@/lib/gemini";
+import { askGemini, type GeminiMessage } from "@/lib/gemini";
 import { isNonEmptyString } from "@/lib/validation";
 import { Settings } from "@/models/Settings";
 import { languageInstruction, normalizeLanguage } from "@/lib/language";
@@ -197,7 +197,10 @@ export async function POST(req: NextRequest) {
 
     chatMessages.push({ role: "user", content: body.content.trim() });
 
-    const reply = await askGemini([systemMessage, ...chatMessages]);
+    const { text: reply, model: usedModel } = await askGemini([
+      systemMessage,
+      ...chatMessages
+    ]);
 
     const planIdForMessage = activePlan?._id ?? undefined;
     const planTypeForMessage = activePlanType;
@@ -216,7 +219,7 @@ export async function POST(req: NextRequest) {
         planType: planTypeForMessage,
         role: "assistant",
         content: reply,
-        model: GEMINI_MODEL
+        model: usedModel
       }
     ]);
 

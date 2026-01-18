@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { connectDb } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { WorkoutPlanModel } from "@/models/WorkoutPlan";
-import { askGemini, GEMINI_MODEL } from "@/lib/gemini";
+import { askGemini } from "@/lib/gemini";
 
 const BASE_SYSTEM_PROMPT = `You provide a single safe, public image URL.
 Prefer instructional exercise images/diagrams that show how to perform the movement.
@@ -41,15 +41,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Exercise not found." }, { status: 404 });
     }
 
-    const prompt = `Provide a single instructional image URL for the exercise below.
-Prefer diagrams or step-by-step visuals that show correct form. Select valid images from reputable sources.
+    const prompt = `Provide a single instructional image URL for the exercise below, Search online and check if the image still exist.
 Exercise: ${exercise.name}
 Equipment: ${exercise.equipment}
 Focus: ${day.focus}
 
 Return JSON only: {"imageUrl":"https://..."}`;
 
-    const responseText = await askGemini(
+    const { text: responseText, model: usedModel } = await askGemini(
       [
         { role: "system", content: BASE_SYSTEM_PROMPT },
         { role: "user", content: prompt }
@@ -93,7 +92,7 @@ Return JSON only: {"imageUrl":"https://..."}`;
     plan.workoutPlanText = JSON.stringify(plan.workoutPlan, null, 2);
     await plan.save();
 
-    return NextResponse.json({ plan, model: GEMINI_MODEL });
+    return NextResponse.json({ plan, model: usedModel });
   } catch (error) {
     console.error("Update workout image error", error);
     return NextResponse.json({ error: "Failed to update image." }, { status: 500 });

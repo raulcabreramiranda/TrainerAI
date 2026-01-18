@@ -10,12 +10,14 @@ type ProfileResponse = {
     avatarBase64?: string;
     avatarContentType?: string;
   };
+  role?: string | null;
 };
 
 export function NavBar() {
   const t = useTranslations();
   const [open, setOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -26,8 +28,15 @@ export function NavBar() {
         return (await res.json()) as ProfileResponse;
       })
       .then((data) => {
-        if (!mounted || !data?.profile?.avatarBase64 || !data.profile.avatarContentType) return;
-        setAvatarUrl(`data:${data.profile.avatarContentType};base64,${data.profile.avatarBase64}`);
+        if (!mounted || !data) return;
+        if (data.role === "ROLE_ADMIN") {
+          setIsAdmin(true);
+        }
+        if (data.profile?.avatarBase64 && data.profile.avatarContentType) {
+          setAvatarUrl(
+            `data:${data.profile.avatarContentType};base64,${data.profile.avatarBase64}`
+          );
+        }
       })
       .catch(() => null);
 
@@ -101,6 +110,15 @@ export function NavBar() {
                   <Link className="block rounded-lg px-3 py-2 hover:bg-slate-50" href="/messages" onClick={() => setOpen(false)}>
                     {t("navMessages")}
                   </Link>
+                  {isAdmin ? (
+                    <Link
+                      className="block rounded-lg px-3 py-2 hover:bg-slate-50"
+                      href="/ai-models"
+                      onClick={() => setOpen(false)}
+                    >
+                      {t("navAiModels")}
+                    </Link>
+                  ) : null}
                 </nav>
               </div>
             ) : null}
