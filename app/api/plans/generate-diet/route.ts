@@ -4,7 +4,8 @@ import { getUserIdFromRequest } from "@/lib/auth";
 import { UserProfile } from "@/models/UserProfile";
 import { DietPlanModel, type DietPlan } from "@/models/DietPlan";
 import { Message } from "@/models/Message";
-import { askGemini, GEMINI_MODEL } from "@/lib/gemini";
+import { GEMINI_MODEL } from "@/lib/gemini";
+import { askAiModel } from "@/lib/ai-model-router";
 import { isNonEmptyString } from "@/lib/validation";
 import { Settings } from "@/models/Settings";
 import { languageInstruction, normalizeLanguage } from "@/lib/language";
@@ -245,7 +246,7 @@ JSON schema example:
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
-        const { text: dietPlanText, model: usedModel } = await askGemini(
+        const { text: dietPlanText, model: usedModel } = await askAiModel(
           [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }

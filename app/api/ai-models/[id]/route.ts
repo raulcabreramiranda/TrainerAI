@@ -4,6 +4,8 @@ import { requireAdminFromRequest } from "@/lib/require-admin";
 import { AiModel } from "@/models/AiModel";
 import { isNonEmptyString } from "@/lib/validation";
 
+const allowedTypes = new Set(["GEMINI"]);
+
 export async function GET(req: NextRequest, context: { params: { id: string } }) {
   try {
     const admin = await requireAdminFromRequest(req);
@@ -38,11 +40,21 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
       );
     }
 
-    const body = (await req.json()) as { name?: string };
+    const body = (await req.json()) as { name?: string; type?: string; enabled?: boolean };
 
     const update: Record<string, unknown> = {};
     if (isNonEmptyString(body.name)) {
       update.name = body.name.trim();
+    }
+    if (isNonEmptyString(body.type)) {
+      const type = body.type.trim().toUpperCase();
+      if (!allowedTypes.has(type)) {
+        return NextResponse.json({ error: "Invalid model type." }, { status: 400 });
+      }
+      update.type = type;
+    }
+    if (typeof body.enabled === "boolean") {
+      update.enabled = body.enabled;
     }
 
     if (Object.keys(update).length === 0) {

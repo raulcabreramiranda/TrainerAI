@@ -1,6 +1,3 @@
-import { connectDb } from "@/lib/db";
-import { AiModel } from "@/models/AiModel";
-
 export type GeminiMessage = {
   role: "user" | "assistant" | "system";
   content: string;
@@ -24,45 +21,15 @@ function getRetryDelayMs(payload: GeminiErrorPayload) {
   return match[2] === "ms" ? value : value * 1000;
 }
 
-type GeminiOptions = {
+export type GeminiOptions = {
   responseMimeType?: string;
 };
 
-type AskGeminiResult = {
-  text: string;
-  model: string;
-};
-
-async function getLeastUsedModel(): Promise<{ name: string; id?: string }> {
-  try {
-    await connectDb();
-    const record = await AiModel.findOne().sort({ usageCount: 1, updatedAt: 1 });
-    if (record?.name) {
-      return { name: record.name, id: String(record._id) };
-    }
-  } catch (error) {
-    console.error("Failed to load AI models", error);
-  }
-  return { name: GEMINI_MODEL };
-}
-
-async function incrementModelUsage(modelName: string) {
-  try {
-    await connectDb();
-    await AiModel.updateOne(
-      { name: modelName },
-      { $inc: { usageCount: 1 }, $setOnInsert: { name: modelName } },
-      { upsert: true }
-    );
-  } catch (error) {
-    console.error("Failed to update AI model usage", error);
-  }
-}
-
 export async function askGemini(
   messages: GeminiMessage[],
-  options: GeminiOptions = {}
-): Promise<AskGeminiResult> {
+  options: GeminiOptions = {},
+  modelName: string = GEMINI_MODEL
+): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not set");
@@ -82,8 +49,7 @@ export async function askGemini(
     parts: [{ text: message.content }]
   }));
 
-  const { name: selectedModel } = await getLeastUsedModel();
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
   const payload: {
     systemInstruction?: { parts: { text: string }[] };
     contents: { role: string; parts: { text: string }[] }[];
@@ -139,7 +105,5 @@ export async function askGemini(
     throw new Error("Gemini returned empty response");
   }
 
-  await incrementModelUsage(selectedModel);
-
-  return { text: output, model: selectedModel };
+  return output;
 }

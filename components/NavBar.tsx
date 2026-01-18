@@ -64,6 +64,14 @@ export function NavBar() {
           {t("appName")}
         </Link>
         <div className="flex items-center gap-3">
+          </div>
+        <div className="flex items-center gap-3">
+          <Link className="hover:text-slate-900" href="/generate-workout">
+            {t("navWorkout")}
+          </Link>
+          <Link className="hover:text-slate-900" href="/generate-diet">
+            {t("navDiet")}
+          </Link>
           <LanguageSelect />
           <div className="relative" ref={menuRef}>
             <button
@@ -100,12 +108,6 @@ export function NavBar() {
                   </Link>
                   <Link className="block rounded-lg px-3 py-2 hover:bg-slate-50" href="/dashboard" onClick={() => setOpen(false)}>
                     {t("navDashboard")}
-                  </Link>
-                  <Link className="block rounded-lg px-3 py-2 hover:bg-slate-50" href="/generate-workout" onClick={() => setOpen(false)}>
-                    {t("navWorkout")}
-                  </Link>
-                  <Link className="block rounded-lg px-3 py-2 hover:bg-slate-50" href="/generate-diet" onClick={() => setOpen(false)}>
-                    {t("navDiet")}
                   </Link>
                   <Link className="block rounded-lg px-3 py-2 hover:bg-slate-50" href="/messages" onClick={() => setOpen(false)}>
                     {t("navMessages")}

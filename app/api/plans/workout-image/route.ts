@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { connectDb } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { WorkoutPlanModel } from "@/models/WorkoutPlan";
-import { askGemini } from "@/lib/gemini";
+import { askAiModel } from "@/lib/ai-model-router";
 
 const BASE_SYSTEM_PROMPT = `You provide a single safe, public image URL.
 Prefer instructional exercise images/diagrams that show how to perform the movement.
@@ -48,7 +48,7 @@ Focus: ${day.focus}
 
 Return JSON only: {"imageUrl":"https://..."}`;
 
-    const { text: responseText, model: usedModel } = await askGemini(
+    const { text: responseText, model: usedModel } = await askAiModel(
       [
         { role: "system", content: BASE_SYSTEM_PROMPT },
         { role: "user", content: prompt }

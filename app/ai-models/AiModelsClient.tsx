@@ -9,6 +9,8 @@ import { getApiErrorKey } from "@/lib/i18n";
 type AiModel = {
   _id: string;
   name: string;
+  type: string;
+  enabled: boolean;
   usageCount: number;
   createdAt?: string;
   updatedAt?: string;
@@ -16,6 +18,8 @@ type AiModel = {
 
 type EditValues = {
   name: string;
+  type: string;
+  enabled: boolean;
 };
 
 export function AiModelsClient() {
@@ -27,6 +31,8 @@ export function AiModelsClient() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
+  const [newType, setNewType] = useState("GEMINI");
+  const [newEnabled, setNewEnabled] = useState(true);
 
   const loadModels = async () => {
     const res = await fetch("/api/ai-models");
@@ -56,7 +62,9 @@ export function AiModelsClient() {
     const nextValues: Record<string, EditValues> = {};
     models.forEach((model) => {
       nextValues[model._id] = {
-        name: model.name
+        name: model.name,
+        type: model.type || "GEMINI",
+        enabled: model.enabled !== false
       };
     });
     setEditValues(nextValues);
@@ -76,7 +84,7 @@ export function AiModelsClient() {
       const res = await fetch("/api/ai-models", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed })
+        body: JSON.stringify({ name: trimmed, type: newType, enabled: newEnabled })
       });
       const data = await res.json();
       if (!res.ok) {
@@ -85,6 +93,8 @@ export function AiModelsClient() {
       }
 
       setNewName("");
+      setNewType("GEMINI");
+      setNewEnabled(true);
       await loadModels();
     } catch (err: any) {
       setError(err.message ?? t("errorSaveAiModels"));
@@ -107,7 +117,11 @@ export function AiModelsClient() {
       const res = await fetch(`/api/ai-models/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed })
+        body: JSON.stringify({
+          name: trimmed,
+          type: values.type,
+          enabled: values.enabled
+        })
       });
       const data = await res.json();
       if (!res.ok) {
@@ -149,7 +163,7 @@ export function AiModelsClient() {
     <div className="space-y-6">
       <Card>
         <form className="space-y-4" onSubmit={onCreate}>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <label className="text-sm text-slate-700">
               <span className="font-semibold text-slate-800">{t("aiModelNameLabel")}</span>
               <input
@@ -160,6 +174,27 @@ export function AiModelsClient() {
                 placeholder="gemini-1.5-flash"
                 required
               />
+            </label>
+            <label className="text-sm text-slate-700">
+              <span className="font-semibold text-slate-800">{t("aiModelTypeLabel")}</span>
+              <select
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
+                value={newType}
+                onChange={(event) => setNewType(event.target.value)}
+              >
+                <option value="GEMINI">{t("aiModelTypeGemini")}</option>
+              </select>
+            </label>
+            <label className="text-sm text-slate-700">
+              <span className="font-semibold text-slate-800">{t("aiModelEnabledLabel")}</span>
+              <select
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
+                value={newEnabled ? "enabled" : "disabled"}
+                onChange={(event) => setNewEnabled(event.target.value === "enabled")}
+              >
+                <option value="enabled">{t("aiModelEnabledOn")}</option>
+                <option value="disabled">{t("aiModelEnabledOff")}</option>
+              </select>
             </label>
             <div className="flex items-end">
               <Button type="submit" className="w-full">
@@ -182,31 +217,67 @@ export function AiModelsClient() {
           ) : (
             models.map((model) => {
               const values = editValues[model._id] ?? {
-                name: model.name
+                name: model.name,
+                type: model.type || "GEMINI",
+                enabled: model.enabled !== false
               };
               return (
                 <div
                   key={model._id}
-                className="grid gap-4 rounded-2xl border border-slate-100 bg-white/70 p-4 md:grid-cols-[2fr_1fr_auto]"
-              >
-                <label className="text-sm text-slate-700">
-                  <span className="font-semibold text-slate-800">{t("aiModelNameLabel")}</span>
-                  <input
-                    type="text"
-                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
-                    value={values.name}
-                    onChange={(event) =>
-                      setEditValues((prev) => ({
-                        ...prev,
-                        [model._id]: { ...values, name: event.target.value }
-                      }))
-                    }
-                  />
-                </label>
-                <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                  <span className="font-semibold text-slate-800">{t("aiModelUsageLabel")}</span>{" "}
-                  {model.usageCount}
-                </div>
+                  className="grid gap-4 rounded-2xl border border-slate-100 bg-white/70 p-4 md:grid-cols-[2fr_1fr_1fr_1fr_auto]"
+                >
+                  <label className="text-sm text-slate-700">
+                    <span className="font-semibold text-slate-800">{t("aiModelNameLabel")}</span>
+                    <input
+                      type="text"
+                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
+                      value={values.name}
+                      onChange={(event) =>
+                        setEditValues((prev) => ({
+                          ...prev,
+                          [model._id]: { ...values, name: event.target.value }
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="text-sm text-slate-700">
+                    <span className="font-semibold text-slate-800">{t("aiModelTypeLabel")}</span>
+                    <select
+                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
+                      value={values.type}
+                      onChange={(event) =>
+                        setEditValues((prev) => ({
+                          ...prev,
+                          [model._id]: { ...values, type: event.target.value }
+                        }))
+                      }
+                    >
+                      <option value="GEMINI">{t("aiModelTypeGemini")}</option>
+                    </select>
+                  </label>
+                  <label className="text-sm text-slate-700">
+                    <span className="font-semibold text-slate-800">{t("aiModelEnabledLabel")}</span>
+                    <select
+                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm"
+                      value={values.enabled ? "enabled" : "disabled"}
+                      onChange={(event) =>
+                        setEditValues((prev) => ({
+                          ...prev,
+                          [model._id]: {
+                            ...values,
+                            enabled: event.target.value === "enabled"
+                          }
+                        }))
+                      }
+                    >
+                      <option value="enabled">{t("aiModelEnabledOn")}</option>
+                      <option value="disabled">{t("aiModelEnabledOff")}</option>
+                    </select>
+                  </label>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                    <span className="font-semibold text-slate-800">{t("aiModelUsageLabel")}</span>{" "}
+                    {model.usageCount}
+                  </div>
                   <div className="flex flex-wrap items-end gap-2">
                     <Button
                       type="button"

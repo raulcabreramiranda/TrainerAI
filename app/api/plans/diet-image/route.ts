@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { connectDb } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { DietPlanModel } from "@/models/DietPlan";
-import { askGemini } from "@/lib/gemini";
+import { askAiModel } from "@/lib/ai-model-router";
 
 const BASE_SYSTEM_PROMPT = `You provide a single safe, public image URL.
 Return only JSON with the exact key "imageUrl".
@@ -46,7 +46,7 @@ Description: ${meal.description}
 
 Return JSON only: {"imageUrl":"https://..."}`;
 
-    const { text: responseText, model: usedModel } = await askGemini(
+    const { text: responseText, model: usedModel } = await askAiModel(
       [
         { role: "system", content: BASE_SYSTEM_PROMPT },
         { role: "user", content: prompt }
