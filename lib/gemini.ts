@@ -69,10 +69,11 @@ export async function askGemini(
     },
     body: JSON.stringify(payload)
   });
-  console.info("responseText", response);
 
 
   if (!response.ok) {
+    console.info("apiKey, payload,", apiKey, payload);
+    console.info("responseText",  response);
     let errorPayload: GeminiErrorPayload = {};
     try {
       errorPayload = (await response.json()) as GeminiErrorPayload;
@@ -101,6 +102,7 @@ export async function askGemini(
   };
 
   const output = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  console.info("output",  output);
   if (!output) {
     throw new Error("Gemini returned empty response");
   }

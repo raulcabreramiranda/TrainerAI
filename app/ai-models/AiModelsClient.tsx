@@ -183,6 +183,10 @@ export function AiModelsClient() {
                 onChange={(event) => setNewType(event.target.value)}
               >
                 <option value="GEMINI">{t("aiModelTypeGemini")}</option>
+                <option value="OPENROUTER">{t("aiModelTypeOpenRouter")}</option>
+                <option value="MISTRAL">{t("aiModelTypeMistral")}</option>
+                <option value="GROQ">{t("aiModelTypeGroq")}</option>
+                <option value="CEREBRAS">{t("aiModelTypeCerebras")}</option>
               </select>
             </label>
             <label className="text-sm text-slate-700">
@@ -253,6 +257,10 @@ export function AiModelsClient() {
                       }
                     >
                       <option value="GEMINI">{t("aiModelTypeGemini")}</option>
+                      <option value="OPENROUTER">{t("aiModelTypeOpenRouter")}</option>
+                      <option value="MISTRAL">{t("aiModelTypeMistral")}</option>
+                      <option value="GROQ">{t("aiModelTypeGroq")}</option>
+                      <option value="CEREBRAS">{t("aiModelTypeCerebras")}</option>
                     </select>
                   </label>
                   <label className="text-sm text-slate-700">

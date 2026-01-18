@@ -4,7 +4,7 @@ import { requireAdminFromRequest } from "@/lib/require-admin";
 import { AiModel } from "@/models/AiModel";
 import { isNonEmptyString } from "@/lib/validation";
 
-const allowedTypes = new Set(["GEMINI"]);
+const allowedTypes = new Set(["GEMINI", "OPENROUTER", "MISTRAL", "GROQ", "CEREBRAS"]);
 
 export async function GET(req: NextRequest) {
   try {

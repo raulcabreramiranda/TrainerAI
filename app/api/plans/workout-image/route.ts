@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Exercise not found." }, { status: 404 });
     }
 
-    const prompt = `Provide a single instructional image URL for the exercise below, Search online and check if the image still exist.
+    const prompt = `Provide a single instructional image URL for the exercise below, Search online and check if the image still exist. Not use upload.wikimedia.org host
 Exercise: ${exercise.name}
 Equipment: ${exercise.equipment}
 Focus: ${day.focus}

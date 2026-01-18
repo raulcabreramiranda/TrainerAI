@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Meal not found." }, { status: 404 });
     }
 
-    const prompt = `Provide a single image URL for the meal below.
+    const prompt = `Provide a single image URL for the meal below. Search online and check if the image still exist. Not use upload.wikimedia.org host
 Meal type: ${meal.mealType}
 Title: ${meal.title}
 Description: ${meal.description}

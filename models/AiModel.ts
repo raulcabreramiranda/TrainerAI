@@ -3,7 +3,11 @@ import mongoose, { Schema, type Model, type InferSchemaType } from "mongoose";
 const aiModelSchema = new Schema(
   {
     name: { type: String, required: true, unique: true },
-    type: { type: String, enum: ["GEMINI"], default: "GEMINI" },
+    type: {
+      type: String,
+      enum: ["GEMINI", "OPENROUTER", "MISTRAL", "GROQ", "CEREBRAS"],
+      default: "GEMINI"
+    },
     enabled: { type: Boolean, default: true },
     usageCount: { type: Number, default: 0 }
   },
