@@ -11,7 +11,11 @@ const userSchema = new Schema(
       default: "credentials"
     },
     providerId: { type: String },
-    role: { type: String, enum: ["user", "admin"], default: "user" },
+    role: {
+      type: String,
+      enum: ["ROLE_USER_FREE", "ROLE_USER_PRO", "ROLE_ADMIN"],
+      default: "ROLE_USER_FREE"
+    },
     status: { type: String, enum: ["active", "blocked"], default: "active" }
   },
   { timestamps: true, collection: "users" }
