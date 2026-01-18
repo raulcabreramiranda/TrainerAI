@@ -150,6 +150,9 @@ const validateDietPlan = (value: unknown): DietPlan => {
       if (!isOptionalString(mealRecord.dayPartNotes)) {
         fail(`days[${dayIndex}].meals[${mealIndex}].dayPartNotes must be a string`);
       }
+      // if (!isOptionalString(mealRecord.imageUrl)) {
+      //   fail(`days[${dayIndex}].meals[${mealIndex}].imageUrl must be a string`);
+      // }
     });
   });
 

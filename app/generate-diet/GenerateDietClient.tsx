@@ -39,11 +39,13 @@ type DietPlan = {
       approxCalories?: number;
       prepNotes?: string;
       dayPartNotes?: string;
+      imageUrl?: string;
     }[];
   }[];
 };
 
 type Plan = {
+  _id?: string;
   dietPlanText?: string;
   dietPlan?: DietPlan;
   title?: string;
@@ -55,6 +57,7 @@ export function GenerateDietClient() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [imageUpdatingKey, setImageUpdatingKey] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -89,6 +92,37 @@ export function GenerateDietClient() {
 
     load();
   }, []);
+
+  const updateMealImage = async (dayIndex: number, mealIndex: number) => {
+    if (!plan?._id) return;
+    const key = `${dayIndex}-${mealIndex}`;
+    setImageUpdatingKey(key);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/plans/diet-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: plan._id,
+          dayIndex,
+          mealIndex
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        const apiErrorKey = getApiErrorKey(data.error);
+        throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorGenerateDiet"));
+      }
+
+      setPlan(data.plan);
+    } catch (err: any) {
+      setError(err.message ?? t("errorGenerateDiet"));
+    } finally {
+      setImageUpdatingKey(null);
+    }
+  };
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -126,6 +160,8 @@ export function GenerateDietClient() {
 
   const structuredPlan = plan?.dietPlan;
   const days = structuredPlan?.days ?? [];
+  const fallbackImage =
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='640' height='480'><rect width='100%25' height='100%25' fill='%23f1f5f9'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='Arial' font-size='20'>Meal image</text></svg>";
 
   return (
     <div className="space-y-6">
@@ -306,9 +342,17 @@ export function GenerateDietClient() {
                         >
                           <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-slate-800">
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                              <span>
-                                {meal.mealType}: {meal.title}
-                              </span>
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={meal.imageUrl || fallbackImage}
+                                  alt={meal.title}
+                                  className="h-10 w-10 rounded-lg object-cover"
+                                  loading="lazy"
+                                />
+                                <span>
+                                  {meal.mealType}: {meal.title}
+                                </span>
+                              </div>
                               {meal.time ? (
                                 <span className="text-xs font-medium text-slate-500">
                                   {meal.time}
@@ -317,6 +361,26 @@ export function GenerateDietClient() {
                             </div>
                           </summary>
                           <div className="space-y-4 border-t border-slate-100 px-4 py-4">
+                            <div className="overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
+                              <img
+                                src={meal.imageUrl || fallbackImage}
+                                alt={meal.title}
+                                className="h-40 w-full object-cover"
+                                loading="lazy"
+                              />
+                            </div>
+                            <div>
+                              <button
+                                type="button"
+                                className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:border-slate-300"
+                                onClick={() => updateMealImage(index, mealIndex)}
+                                disabled={imageUpdatingKey === `${index}-${mealIndex}`}
+                              >
+                                {imageUpdatingKey === `${index}-${mealIndex}`
+                                  ? t("updatingImage")
+                                  : t("findImage")}
+                              </button>
+                            </div>
                             <p className="text-sm text-slate-600">{meal.description}</p>
                             <div className="grid gap-3 md:grid-cols-2">
                               {meal.items.map((item, itemIndex) => (

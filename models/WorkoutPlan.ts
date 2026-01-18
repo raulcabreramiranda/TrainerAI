@@ -19,6 +19,7 @@ export type WorkoutPlan = {
       tempo?: string;
       order: number;
       notes?: string;
+      imageUrl?: string;
     }[];
   }[];
 };
@@ -32,7 +33,8 @@ const workoutExerciseSchema = new Schema(
     restSeconds: { type: Number, required: true },
     tempo: { type: String },
     order: { type: Number, required: true },
-    notes: { type: String }
+    notes: { type: String },
+    imageUrl: { type: String }
   },
   { _id: false }
 );

@@ -24,6 +24,7 @@ export type DietPlan = {
       approxCalories?: number;
       prepNotes?: string;
       dayPartNotes?: string;
+      imageUrl?: string;
     }[];
   }[];
 };
@@ -46,7 +47,8 @@ const dietMealSchema = new Schema(
     items: { type: [dietItemSchema], default: [] },
     approxCalories: { type: Number },
     prepNotes: { type: String },
-    dayPartNotes: { type: String }
+    dayPartNotes: { type: String },
+    imageUrl: { type: String }
   },
   { _id: false }
 );

@@ -35,11 +35,13 @@ type WorkoutPlan = {
       tempo?: string;
       order: number;
       notes?: string;
+      imageUrl?: string;
     }[];
   }[];
 };
 
 type Plan = {
+  _id?: string;
   workoutPlanText?: string;
   workoutPlan?: WorkoutPlan;
   title?: string;
@@ -51,6 +53,7 @@ export function GenerateWorkoutClient() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [imageUpdatingKey, setImageUpdatingKey] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -85,6 +88,37 @@ export function GenerateWorkoutClient() {
 
     load();
   }, []);
+
+  const updateExerciseImage = async (dayIndex: number, exerciseIndex: number) => {
+    if (!plan?._id) return;
+    const key = `${dayIndex}-${exerciseIndex}`;
+    setImageUpdatingKey(key);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/plans/workout-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: plan._id,
+          dayIndex,
+          exerciseIndex
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        const apiErrorKey = getApiErrorKey(data.error);
+        throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorGenerateWorkout"));
+      }
+
+      setPlan(data.plan);
+    } catch (err: any) {
+      setError(err.message ?? t("errorGenerateWorkout"));
+    } finally {
+      setImageUpdatingKey(null);
+    }
+  };
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -122,6 +156,8 @@ export function GenerateWorkoutClient() {
 
   const structuredPlan = plan?.workoutPlan;
   const days = structuredPlan?.days ?? [];
+  const fallbackImage =
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='640' height='480'><rect width='100%25' height='100%25' fill='%23f1f5f9'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='Arial' font-size='20'>Exercise image</text></svg>";
 
   return (
     <div className="space-y-6">
@@ -318,20 +354,48 @@ export function GenerateWorkoutClient() {
                             key={`${tabId}-exercise-${exerciseIndex}`}
                             className="rounded-2xl border border-slate-200 bg-white"
                           >
-                            <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-slate-800">
-                              <div className="flex flex-wrap items-center justify-between gap-2">
+                          <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-slate-800">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={exercise.imageUrl || fallbackImage}
+                                  alt={exercise.name}
+                                  className="h-10 w-10 rounded-lg object-cover"
+                                  loading="lazy"
+                                />
                                 <span>
                                   {exercise.order}. {exercise.name}
                                 </span>
-                                <span className="text-xs font-medium text-slate-500">
-                                  {exercise.equipment}
-                                </span>
                               </div>
-                            </summary>
-                            <div className="space-y-4 border-t border-slate-100 px-4 py-4">
-                              <div className="grid gap-3 md:grid-cols-2">
-                                <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-                                  <p className="text-xs font-semibold text-slate-600">
+                              <span className="text-xs font-medium text-slate-500">
+                                {exercise.equipment}
+                              </span>
+                            </div>
+                          </summary>
+                          <div className="space-y-4 border-t border-slate-100 px-4 py-4">
+                            <div className="overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
+                              <img
+                                src={exercise.imageUrl || fallbackImage}
+                                alt={exercise.name}
+                                className="h-40 w-full object-cover"
+                                loading="lazy"
+                              />
+                            </div>
+                            <div>
+                              <button
+                                type="button"
+                                className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:border-slate-300"
+                                onClick={() => updateExerciseImage(index, exerciseIndex)}
+                                disabled={imageUpdatingKey === `${index}-${exerciseIndex}`}
+                              >
+                                {imageUpdatingKey === `${index}-${exerciseIndex}`
+                                  ? t("updatingImage")
+                                  : t("findImage")}
+                              </button>
+                            </div>
+                            <div className="grid gap-3 md:grid-cols-2">
+                              <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                                <p className="text-xs font-semibold text-slate-600">
                                     {t("setsLabel")}
                                   </p>
                                   <p className="text-sm font-semibold text-slate-800">

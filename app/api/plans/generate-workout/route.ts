@@ -121,6 +121,9 @@ const validateWorkoutPlan = (value: unknown): WorkoutPlan => {
       if (!isOptionalString(exerciseRecord.notes)) {
         fail(`days[${dayIndex}].exercises[${exerciseIndex}].notes must be a string`);
       }
+      if (!isOptionalString(exerciseRecord.imageUrl)) {
+        fail(`days[${dayIndex}].exercises[${exerciseIndex}].imageUrl must be a string`);
+      }
     });
   });
 

@@ -65,6 +65,8 @@ export async function askGemini(messages: GeminiMessage[], options: GeminiOption
     },
     body: JSON.stringify(payload)
   });
+    console.info("responseText", response);
+
 
   if (!response.ok) {
     let errorPayload: GeminiErrorPayload = {};
