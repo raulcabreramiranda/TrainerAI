@@ -485,6 +485,11 @@ export function UpdateDataClient() {
           <Button type="submit" disabled={saving}>
             {saving ? t("saving") : t("save")}
           </Button>
+          <Link href="/change-password">
+            <Button type="button" variant="secondary">
+              {t("changePasswordAction")}
+            </Button>
+          </Link>
           <Link href="/dashboard">
             <Button type="button" variant="secondary">
               {t("backToDashboard")}
