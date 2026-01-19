@@ -1,7 +1,10 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { DM_Serif_Display, Space_Grotesk } from "next/font/google";
 import { LanguageProvider } from "@/components/LanguageProvider";
+import { Analytics } from "@/components/Analytics";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 const displayFont = DM_Serif_Display({
   subsets: ["latin"],
@@ -25,12 +28,19 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
+  const isProd = process.env.NODE_ENV === "production";
+
   return (
     <html lang="en" className={`${displayFont.variable} ${bodyFont.variable}`}>
       <body className="min-h-screen font-body">
         <div className="min-h-screen">
           <LanguageProvider>{children}</LanguageProvider>
         </div>
+        <Suspense fallback={null}>
+          <Analytics />
+        </Suspense>
+        {gaId && isProd ? <GoogleAnalytics gaId={gaId} /> : null}
       </body>
     </html>
   );
