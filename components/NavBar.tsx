@@ -86,7 +86,6 @@ export function NavBar() {
           <Link className="hover:text-slate-900" href="/generate-diet">
             {t("navDiet")}
           </Link>
-          <LanguageSelect />
           <div className="relative" ref={menuRef}>
             <button
               type="button"
