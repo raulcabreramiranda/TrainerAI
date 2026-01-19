@@ -2,7 +2,7 @@ import type { AppLanguage } from "@/lib/language";
 
 export const translations = {
   en: {
-    appName: "Move & Munch",
+    appName: "TrainerAI",
     signupSubtitle: "Create your account to build safe workout and meal plans.",
     loginSubtitle: "Welcome back. Log in to continue.",
     nameLabel: "Name",
@@ -303,6 +303,7 @@ export const translations = {
     navMessages: "Messages",
     navUpdateData: "Update data",
     navAiModels: "AI models",
+    logout: "Log out",
     menuLabel: "Open menu",
     menuTitle: "Account menu",
     menuSubtitle: "Quick actions",
@@ -326,7 +327,7 @@ export const translations = {
     dietFlexitarian: "Flexitarian"
   },
   es: {
-    appName: "Move & Munch",
+    appName: "TrainerAI",
     signupSubtitle: "Crea tu cuenta para planes seguros de ejercicio y comida.",
     loginSubtitle: "Bienvenido de nuevo. Inicia sesion para continuar.",
     nameLabel: "Nombre",
@@ -627,6 +628,7 @@ export const translations = {
     navMessages: "Mensajes",
     navUpdateData: "Actualizar datos",
     navAiModels: "Modelos de IA",
+    logout: "Salir",
     menuLabel: "Abrir menu",
     menuTitle: "Menu de cuenta",
     menuSubtitle: "Acciones rapidas",
@@ -650,7 +652,7 @@ export const translations = {
     dietFlexitarian: "Flexitariano"
   },
   "pt-BR": {
-    appName: "Move & Munch",
+    appName: "TrainerAI",
     signupSubtitle: "Crie sua conta para planos seguros de treino e alimentacao.",
     loginSubtitle: "Bem-vindo de volta. Entre para continuar.",
     nameLabel: "Nome",
@@ -951,6 +953,7 @@ export const translations = {
     navMessages: "Mensagens",
     navUpdateData: "Atualizar dados",
     navAiModels: "Modelos de IA",
+    logout: "Sair",
     menuLabel: "Abrir menu",
     menuTitle: "Menu da conta",
     menuSubtitle: "Acoes rapidas",

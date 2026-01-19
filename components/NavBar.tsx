@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "@/components/LanguageProvider";
 import { LanguageSelect } from "@/components/LanguageSelect";
 
@@ -15,6 +16,7 @@ type ProfileResponse = {
 
 export function NavBar() {
   const t = useTranslations();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -56,6 +58,15 @@ export function NavBar() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      setOpen(false);
+      router.push("/login");
+    }
+  };
 
   return (
     <header className="relative z-40 border-b border-slate-200/70 bg-white/70 backdrop-blur">
@@ -131,6 +142,13 @@ export function NavBar() {
                       {t("navAiModels")}
                     </Link>
                   ) : null}
+                  <button
+                    type="button"
+                    className="mt-2 block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-rose-600 hover:bg-rose-50"
+                    onClick={handleLogout}
+                  >
+                    {t("logout")}
+                  </button>
                 </nav>
               </div>
             ) : null}

@@ -16,7 +16,7 @@ const bodyFont = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Move & Munch",
+  title: "TrainerAI",
   description: "Safe, beginner-friendly workout and diet plans."
 };
 
