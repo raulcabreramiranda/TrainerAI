@@ -69,6 +69,9 @@ export function NavBar() {
           <Link className="hover:text-slate-900" href="/generate-workout">
             {t("navWorkout")}
           </Link>
+          <Link className="hover:text-slate-900" href="/workout-log">
+            {t("navWorkoutLog")}
+          </Link>
           <Link className="hover:text-slate-900" href="/generate-diet">
             {t("navDiet")}
           </Link>
@@ -111,6 +114,13 @@ export function NavBar() {
                   </Link>
                   <Link className="block rounded-lg px-3 py-2 hover:bg-slate-50" href="/messages" onClick={() => setOpen(false)}>
                     {t("navMessages")}
+                  </Link>
+                  <Link
+                    className="block rounded-lg px-3 py-2 hover:bg-slate-50"
+                    href="/workout-log"
+                    onClick={() => setOpen(false)}
+                  >
+                    {t("navWorkoutLog")}
                   </Link>
                   {isAdmin ? (
                     <Link
