@@ -50,12 +50,20 @@ export default async function WorkoutSessionPage({ params, searchParams }: PageP
     );
   }
 
+  const exercises = (planDay.exercises ?? []).map((exercise) => ({
+    name: exercise.name,
+    equipment: exercise.equipment ?? undefined,
+    order: exercise.order,
+    sets: exercise.sets,
+    reps: exercise.reps,
+    imageUrl: exercise.imageUrl ?? undefined
+  }));
+
   return (
     <div className="min-h-screen">
       <NavBar />
       <Container>
         <WorkoutSessionClient
-          planId={String(plan._id)}
           sessionId={searchParams?.sessionId}
           planTitle={plan.title ?? undefined}
           dayIndex={dayIndex}
@@ -63,7 +71,7 @@ export default async function WorkoutSessionPage({ params, searchParams }: PageP
           dayFocus={planDay.focus}
           dayNotes={planDay.notes}
           isRestDay={planDay.isRestDay}
-          exercises={planDay.exercises || []}
+          exercises={exercises}
         />
       </Container>
     </div>
