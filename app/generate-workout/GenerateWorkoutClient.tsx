@@ -6,6 +6,7 @@ import { Button } from "@/components/Button";
 import { Disclaimer } from "@/components/Disclaimer";
 import { useTranslations } from "@/components/LanguageProvider";
 import { getApiErrorKey, getOptionLabelKey } from "@/lib/i18n";
+import { getErrorMessage } from "@/lib/api/errors";
 
 type Profile = {
   goal: string;
@@ -77,8 +78,9 @@ export function GenerateWorkoutClient() {
         const planData = await planRes.json();
 
         if (!profileRes.ok) {
-          const apiErrorKey = getApiErrorKey(profileData.error);
-          throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorLoadProfile"));
+          const errorMessage = getErrorMessage(profileData.error);
+          const apiErrorKey = getApiErrorKey(errorMessage);
+          throw new Error(apiErrorKey ? t(apiErrorKey) : errorMessage ?? t("errorLoadProfile"));
         }
 
         setProfile(profileData.profile);
@@ -114,8 +116,9 @@ export function GenerateWorkoutClient() {
 
       const data = await res.json();
       if (!res.ok) {
-        const apiErrorKey = getApiErrorKey(data.error);
-        throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorGenerateWorkout"));
+        const errorMessage = getErrorMessage(data.error);
+        const apiErrorKey = getApiErrorKey(errorMessage);
+        throw new Error(apiErrorKey ? t(apiErrorKey) : errorMessage ?? t("errorGenerateWorkout"));
       }
 
       setPlan(data.plan);
@@ -140,8 +143,9 @@ export function GenerateWorkoutClient() {
 
       const data = await res.json();
       if (!res.ok) {
-        const apiErrorKey = getApiErrorKey(data.error);
-        throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorGenerateWorkout"));
+        const errorMessage = getErrorMessage(data.error);
+        const apiErrorKey = getApiErrorKey(errorMessage);
+        throw new Error(apiErrorKey ? t(apiErrorKey) : errorMessage ?? t("errorGenerateWorkout"));
       }
 
       setPlan(data.plan);
@@ -194,8 +198,9 @@ export function GenerateWorkoutClient() {
       });
       const data = await res.json();
       if (!res.ok) {
-        const apiErrorKey = getApiErrorKey(data.error);
-        throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorSaveRating"));
+        const errorMessage = getErrorMessage(data.error);
+        const apiErrorKey = getApiErrorKey(errorMessage);
+        throw new Error(apiErrorKey ? t(apiErrorKey) : errorMessage ?? t("errorSaveRating"));
       }
 
       setRatingSubmitted(true);

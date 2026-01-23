@@ -8,6 +8,7 @@ import { SessionConfirmCopy, type SessionConfirmMode } from "@/components/workou
 import { useTranslations } from "@/components/LanguageProvider";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getApiErrorKey } from "@/lib/i18n";
+import { getErrorMessage } from "@/lib/api/errors";
 
 type WorkoutDay = {
   dayIndex: number;
@@ -60,8 +61,9 @@ export function WorkoutLogClient() {
         ]);
         const planData = await planRes.json();
         if (!planRes.ok) {
-          const apiErrorKey = getApiErrorKey(planData.error);
-          throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorLoadWorkoutLog"));
+          const errorMessage = getErrorMessage(planData.error);
+          const apiErrorKey = getApiErrorKey(errorMessage);
+          throw new Error(apiErrorKey ? t(apiErrorKey) : errorMessage ?? t("errorLoadWorkoutLog"));
         }
         setPlan(planData.workoutPlan ?? null);
 
@@ -358,9 +360,12 @@ export function WorkoutLogClient() {
                         });
                         const data = await res.json();
                         if (!res.ok) {
-                          const apiErrorKey = getApiErrorKey(data.error);
+                          const errorMessage = getErrorMessage(data.error);
+                          const apiErrorKey = getApiErrorKey(errorMessage);
                           throw new Error(
-                            apiErrorKey ? t(apiErrorKey) : t("workoutSessionSaveError")
+                            apiErrorKey
+                              ? t(apiErrorKey)
+                              : errorMessage ?? t("workoutSessionSaveError")
                           );
                         }
                         const sessionId = data.session?._id;

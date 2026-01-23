@@ -3,31 +3,34 @@ import sharp from "sharp";
 import { connectDb } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { UserProfile } from "@/models/UserProfile";
+import { ApiError } from "@/lib/api/errors";
+import { toErrorResponse } from "@/lib/api/server";
+export const dynamic = "force-dynamic";
 
 const MAX_FILE_BYTES = 6 * 1024 * 1024;
 const MAX_DIMENSION = 256;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export async function POST(req: NextRequest) {
-  const userId = getUserIdFromRequest(req);
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
+    const userId = getUserIdFromRequest(req);
+    if (!userId) {
+      throw new ApiError("unauthorized", "Unauthorized", 401);
+    }
+
     const formData = await req.formData();
     const file = formData.get("avatar");
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: "Avatar file required." }, { status: 400 });
+      throw new ApiError("avatar_required", "Avatar file required.", 400);
     }
 
     if (!ACCEPTED_TYPES.includes(file.type)) {
-      return NextResponse.json({ error: "Unsupported file type." }, { status: 400 });
+      throw new ApiError("avatar_type", "Unsupported file type.", 400);
     }
 
     if (file.size > MAX_FILE_BYTES) {
-      return NextResponse.json({ error: "Avatar file is too large." }, { status: 400 });
+      throw new ApiError("avatar_too_large", "Avatar file is too large.", 400);
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -50,12 +53,13 @@ export async function POST(req: NextRequest) {
     );
 
     if (!profile) {
-      return NextResponse.json({ error: "Profile not found." }, { status: 404 });
+      throw new ApiError("profile_not_found", "Profile not found.", 404);
     }
 
     return NextResponse.json({ profile });
   } catch (error) {
-    console.error("Avatar upload error", error);
-    return NextResponse.json({ error: "Failed to upload avatar." }, { status: 500 });
+    return toErrorResponse(error);
   }
 }
+
+

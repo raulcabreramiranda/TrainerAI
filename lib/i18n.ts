@@ -1056,6 +1056,8 @@ export function getOptionLabelKey(category: OptionCategory, value?: string | nul
 export const apiErrorKeyMap: Record<string, TranslationKey> = {
   "Valid email is required.": "errorEmailRequired",
   "Password must be at least 8 characters.": "errorPasswordMin",
+  "Invalid request.": "errorGeneric",
+  "Something went wrong.": "errorGeneric",
   "Current and new password required.": "errorPasswordChangeRequired",
   "Current password is incorrect.": "errorCurrentPasswordInvalid",
   "Password change not available.": "errorPasswordChangeUnavailable",

@@ -5,6 +5,7 @@ import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { useTranslations } from "@/components/LanguageProvider";
 import { getApiErrorKey } from "@/lib/i18n";
+import { getErrorMessage } from "@/lib/api/errors";
 
 type AiModel = {
   _id: string;
@@ -30,8 +31,9 @@ export function AiModelsClient() {
     const res = await fetch("/api/ai-models");
     const data = await res.json();
     if (!res.ok) {
-      const apiErrorKey = getApiErrorKey(data.error);
-      throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorLoadAiModels"));
+      const errorMessage = getErrorMessage(data.error);
+      const apiErrorKey = getApiErrorKey(errorMessage);
+      throw new Error(apiErrorKey ? t(apiErrorKey) : errorMessage ?? t("errorLoadAiModels"));
     }
     setModels(data.models || []);
   };
@@ -68,8 +70,9 @@ export function AiModelsClient() {
       });
       const data = await res.json();
       if (!res.ok) {
-        const apiErrorKey = getApiErrorKey(data.error);
-        throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorSaveAiModels"));
+        const errorMessage = getErrorMessage(data.error);
+        const apiErrorKey = getApiErrorKey(errorMessage);
+        throw new Error(apiErrorKey ? t(apiErrorKey) : errorMessage ?? t("errorSaveAiModels"));
       }
 
       setNewName("");
@@ -93,8 +96,9 @@ export function AiModelsClient() {
       });
       const data = await res.json();
       if (!res.ok) {
-        const apiErrorKey = getApiErrorKey(data.error);
-        throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorSaveAiModels"));
+        const errorMessage = getErrorMessage(data.error);
+        const apiErrorKey = getApiErrorKey(errorMessage);
+        throw new Error(apiErrorKey ? t(apiErrorKey) : errorMessage ?? t("errorSaveAiModels"));
       }
 
       await loadModels();

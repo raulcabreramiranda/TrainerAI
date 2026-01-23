@@ -7,6 +7,7 @@ import { Field } from "@/components/Field";
 import { Button } from "@/components/Button";
 import { useTranslations } from "@/components/LanguageProvider";
 import { getApiErrorKey } from "@/lib/i18n";
+import { getErrorMessage } from "@/lib/api/errors";
 
 export function ChangePasswordClient() {
   const t = useTranslations();
@@ -52,8 +53,9 @@ export function ChangePasswordClient() {
 
       const data = await res.json();
       if (!res.ok) {
-        const apiErrorKey = getApiErrorKey(data.error);
-        setError(apiErrorKey ? t(apiErrorKey) : t("errorChangePassword"));
+        const errorMessage = getErrorMessage(data.error);
+        const apiErrorKey = getApiErrorKey(errorMessage);
+        setError(apiErrorKey ? t(apiErrorKey) : errorMessage ?? t("errorChangePassword"));
         setLoading(false);
         return;
       }

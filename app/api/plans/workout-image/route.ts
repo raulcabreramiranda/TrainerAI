@@ -1,8 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import { connectDb } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { WorkoutPlanModel } from "@/models/WorkoutPlan";
 import { askAiModel } from "@/lib/ai-model-router";
+import { ApiError } from "@/lib/api/errors";
+import { parseJson, toErrorResponse } from "@/lib/api/server";
+export const dynamic = "force-dynamic";
 
 const BASE_SYSTEM_PROMPT = `You provide a single safe, public image URL.
 Prefer instructional exercise images/diagrams that show how to perform the movement.
@@ -11,34 +15,32 @@ Return only JSON with the exact key "imageUrl".
 Use https URLs from reputable free sources.
 No markdown, no extra text.`;
 
+const workoutImageSchema = z.object({
+  planId: z.string().min(1, "Invalid request."),
+  dayIndex: z.coerce.number(),
+  exerciseIndex: z.coerce.number()
+});
+
 export async function POST(req: NextRequest) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      throw new ApiError("unauthorized", "Unauthorized", 401);
     }
 
-    const body = (await req.json()) as {
-      planId?: string;
-      dayIndex?: number;
-      exerciseIndex?: number;
-    };
-
-    if (!body.planId || typeof body.dayIndex !== "number" || typeof body.exerciseIndex !== "number") {
-      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
-    }
+    const body = await parseJson(req, workoutImageSchema);
 
     await connectDb();
 
     const plan = await WorkoutPlanModel.findOne({ _id: body.planId, userId });
     if (!plan || !plan.workoutPlan) {
-      return NextResponse.json({ error: "Plan not found." }, { status: 404 });
+      throw new ApiError("plan_not_found", "Plan not found.", 404);
     }
 
     const day = plan.workoutPlan.days?.[body.dayIndex];
     const exercise = day?.exercises?.[body.exerciseIndex];
     if (!day || !exercise) {
-      return NextResponse.json({ error: "Exercise not found." }, { status: 404 });
+      throw new ApiError("exercise_not_found", "Exercise not found.", 404);
     }
 
     const prompt = `Provide a single instructional image URL for the exercise below, Search online and check if the image still exist. Not use upload.wikimedia.org host
@@ -61,27 +63,27 @@ Return JSON only: {"imageUrl":"https://..."}`;
       parsed = JSON.parse(responseText);
     } catch (parseError) {
       console.error("Workout image JSON parse error", parseError);
-      return NextResponse.json({ error: "Invalid image response." }, { status: 502 });
+      throw new ApiError("image_response_invalid", "Invalid image response.", 502);
     }
 
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return NextResponse.json({ error: "Invalid image response." }, { status: 502 });
+      throw new ApiError("image_response_invalid", "Invalid image response.", 502);
     }
 
     const imageUrl = (parsed as { imageUrl?: string }).imageUrl;
     if (!imageUrl || typeof imageUrl !== "string") {
-      return NextResponse.json({ error: "Invalid image response." }, { status: 502 });
+      throw new ApiError("image_response_invalid", "Invalid image response.", 502);
     }
 
     let url: URL;
     try {
       url = new URL(imageUrl);
     } catch {
-      return NextResponse.json({ error: "Invalid image URL." }, { status: 400 });
+      throw new ApiError("image_url_invalid", "Invalid image URL.", 400);
     }
 
     if (url.protocol !== "https:" && url.protocol !== "http:") {
-      return NextResponse.json({ error: "Invalid image URL." }, { status: 400 });
+      throw new ApiError("image_url_invalid", "Invalid image URL.", 400);
     }
 
     plan.set(
@@ -94,7 +96,12 @@ Return JSON only: {"imageUrl":"https://..."}`;
 
     return NextResponse.json({ plan, model: usedModel });
   } catch (error) {
-    console.error("Update workout image error", error);
-    return NextResponse.json({ error: "Failed to update image." }, { status: 500 });
+    return toErrorResponse(error, {
+      code: "update_image_failed",
+      message: "Failed to update image.",
+      status: 500
+    });
   }
 }
+
+

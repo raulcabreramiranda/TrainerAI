@@ -6,6 +6,7 @@ import { normalizeProvider, getAuthUrlConfig, type OAuthProvider } from "@/lib/o
 import { User } from "@/models/User";
 import { UserProfile } from "@/models/UserProfile";
 import { Settings } from "@/models/Settings";
+export const dynamic = "force-dynamic";
 
 const STATE_COOKIE = "mm_oauth_state";
 
@@ -223,3 +224,5 @@ export async function GET(req: NextRequest, context: { params: { provider: strin
     return res;
   }
 }
+
+

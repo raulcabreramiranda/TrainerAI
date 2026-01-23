@@ -1,32 +1,52 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import { connectDb } from "@/lib/db";
 import { requireAdminFromRequest } from "@/lib/require-admin";
 import { AiModel } from "@/models/AiModel";
-import { isNonEmptyString } from "@/lib/validation";
+import { ApiError } from "@/lib/api/errors";
+import { parseJson, parseParams, toErrorResponse } from "@/lib/api/server";
+export const dynamic = "force-dynamic";
 
 const allowedTypes = new Set(["GEMINI", "OPENROUTER", "MISTRAL", "GROQ", "CEREBRAS"]);
+
+const modelIdSchema = z.object({
+  id: z.string().min(1, "Invalid request.")
+});
+
+const updateModelSchema = z
+  .object({
+    name: z.string().optional(),
+    type: z.string().optional(),
+    enabled: z.boolean().optional()
+  })
+  .passthrough();
 
 export async function GET(req: NextRequest, context: { params: { id: string } }) {
   try {
     const admin = await requireAdminFromRequest(req);
     if (!admin.ok) {
-      return NextResponse.json(
-        { error: admin.status === 401 ? "Unauthorized" : "Forbidden" },
-        { status: admin.status }
+      throw new ApiError(
+        admin.status === 401 ? "unauthorized" : "forbidden",
+        admin.status === 401 ? "Unauthorized" : "Forbidden",
+        admin.status
       );
     }
 
     await connectDb();
 
-    const model = await AiModel.findById(context.params.id);
+    const { id } = parseParams(context.params, modelIdSchema);
+    const model = await AiModel.findById(id);
     if (!model) {
-      return NextResponse.json({ error: "Model not found." }, { status: 404 });
+      throw new ApiError("model_not_found", "Model not found.", 404);
     }
 
     return NextResponse.json({ model });
   } catch (error) {
-    console.error("Get AI model error", error);
-    return NextResponse.json({ error: "Failed to load AI model." }, { status: 500 });
+    return toErrorResponse(error, {
+      code: "load_ai_model_failed",
+      message: "Failed to load AI model.",
+      status: 500
+    });
   }
 }
 
@@ -34,22 +54,24 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
   try {
     const admin = await requireAdminFromRequest(req);
     if (!admin.ok) {
-      return NextResponse.json(
-        { error: admin.status === 401 ? "Unauthorized" : "Forbidden" },
-        { status: admin.status }
+      throw new ApiError(
+        admin.status === 401 ? "unauthorized" : "forbidden",
+        admin.status === 401 ? "Unauthorized" : "Forbidden",
+        admin.status
       );
     }
 
-    const body = (await req.json()) as { name?: string; type?: string; enabled?: boolean };
+    const { id } = parseParams(context.params, modelIdSchema);
+    const body = await parseJson(req, updateModelSchema);
 
     const update: Record<string, unknown> = {};
-    if (isNonEmptyString(body.name)) {
+    if (body.name) {
       update.name = body.name.trim();
     }
-    if (isNonEmptyString(body.type)) {
+    if (body.type) {
       const type = body.type.trim().toUpperCase();
       if (!allowedTypes.has(type)) {
-        return NextResponse.json({ error: "Invalid model type." }, { status: 400 });
+        throw new ApiError("invalid_model_type", "Invalid model type.", 400);
       }
       update.type = type;
     }
@@ -58,22 +80,25 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
     }
 
     if (Object.keys(update).length === 0) {
-      return NextResponse.json({ error: "No updates provided." }, { status: 400 });
+      throw new ApiError("no_updates", "No updates provided.", 400);
     }
 
     await connectDb();
 
-    const model = await AiModel.findByIdAndUpdate(context.params.id, update, {
+    const model = await AiModel.findByIdAndUpdate(id, update, {
       new: true
     });
     if (!model) {
-      return NextResponse.json({ error: "Model not found." }, { status: 404 });
+      throw new ApiError("model_not_found", "Model not found.", 404);
     }
 
     return NextResponse.json({ model });
   } catch (error) {
-    console.error("Update AI model error", error);
-    return NextResponse.json({ error: "Failed to update AI model." }, { status: 500 });
+    return toErrorResponse(error, {
+      code: "update_ai_model_failed",
+      message: "Failed to update AI model.",
+      status: 500
+    });
   }
 }
 
@@ -81,22 +106,29 @@ export async function DELETE(req: NextRequest, context: { params: { id: string }
   try {
     const admin = await requireAdminFromRequest(req);
     if (!admin.ok) {
-      return NextResponse.json(
-        { error: admin.status === 401 ? "Unauthorized" : "Forbidden" },
-        { status: admin.status }
+      throw new ApiError(
+        admin.status === 401 ? "unauthorized" : "forbidden",
+        admin.status === 401 ? "Unauthorized" : "Forbidden",
+        admin.status
       );
     }
 
     await connectDb();
 
-    const model = await AiModel.findByIdAndDelete(context.params.id);
+    const { id } = parseParams(context.params, modelIdSchema);
+    const model = await AiModel.findByIdAndDelete(id);
     if (!model) {
-      return NextResponse.json({ error: "Model not found." }, { status: 404 });
+      throw new ApiError("model_not_found", "Model not found.", 404);
     }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("Delete AI model error", error);
-    return NextResponse.json({ error: "Failed to delete AI model." }, { status: 500 });
+    return toErrorResponse(error, {
+      code: "delete_ai_model_failed",
+      message: "Failed to delete AI model.",
+      status: 500
+    });
   }
 }
+
+

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import { connectDb } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { UserProfile } from "@/models/UserProfile";
@@ -10,9 +11,16 @@ import { isNonEmptyString } from "@/lib/validation";
 import { Settings } from "@/models/Settings";
 import { languageInstruction, normalizeLanguage } from "@/lib/language";
 import { getOptionLabelKey, translate } from "@/lib/i18n";
+import { ApiError } from "@/lib/api/errors";
+import { parseJson, toErrorResponse } from "@/lib/api/server";
+export const dynamic = "force-dynamic";
 
 const PROMPT_VERSION = "v1.0";
 const MODEL_NAME: string = GEMINI_MODEL;
+
+const generateDietSchema = z.object({
+  note: z.string().optional()
+});
 
 const BASE_SYSTEM_PROMPT = `You are a helpful fitness and nutrition assistant.
 You must NOT give medical advice.
@@ -164,17 +172,17 @@ export async function POST(req: NextRequest) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      throw new ApiError("unauthorized", "Unauthorized", 401);
     }
 
-    const body = (await req.json()) as { note?: string };
+    const body = await parseJson(req, generateDietSchema);
     const note = isNonEmptyString(body.note) ? body.note.trim() : "";
 
     await connectDb();
 
     const profile = await UserProfile.findOne({ userId });
     if (!profile) {
-      return NextResponse.json({ error: "Profile not found." }, { status: 404 });
+      throw new ApiError("profile_not_found", "Profile not found.", 404);
     }
 
     const settings = await Settings.findOne({ userId });
@@ -322,7 +330,12 @@ JSON schema example:
 
     return NextResponse.json({ plan });
   } catch (error) {
-    console.error("Generate diet error", error);
-    return NextResponse.json({ error: "Failed to generate diet plan." }, { status: 500 });
+    return toErrorResponse(error, {
+      code: "generate_diet_failed",
+      message: "Failed to generate diet plan.",
+      status: 500
+    });
   }
 }
+
+

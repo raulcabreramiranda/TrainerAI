@@ -10,6 +10,7 @@ import { Field } from "@/components/Field";
 import { LanguageSelect } from "@/components/LanguageSelect";
 import { useTranslations } from "@/components/LanguageProvider";
 import { getApiErrorKey } from "@/lib/i18n";
+import { getErrorMessage } from "@/lib/api/errors";
 
 export function SignupClient() {
   const router = useRouter();
@@ -69,8 +70,9 @@ export function SignupClient() {
 
       const data = await res.json();
       if (!res.ok) {
-        const apiErrorKey = getApiErrorKey(data.error);
-        setError(apiErrorKey ? t(apiErrorKey) : t("errorSignupFailed"));
+        const errorMessage = getErrorMessage(data.error);
+        const apiErrorKey = getApiErrorKey(errorMessage);
+        setError(apiErrorKey ? t(apiErrorKey) : errorMessage ?? t("errorSignupFailed"));
         setLoading(false);
         return;
       }

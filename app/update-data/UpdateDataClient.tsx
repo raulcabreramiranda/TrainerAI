@@ -8,6 +8,7 @@ import { Button } from "@/components/Button";
 import { useLanguage, useTranslations } from "@/components/LanguageProvider";
 import { normalizeLanguage } from "@/lib/language";
 import { getApiErrorKey, type TranslationKey } from "@/lib/i18n";
+import { getErrorMessage } from "@/lib/api/errors";
 
 const GOAL_OPTIONS: { value: string; labelKey: TranslationKey }[] = [
   { value: "general fitness", labelKey: "goalGeneralFitness" },
@@ -83,8 +84,9 @@ export function UpdateDataClient() {
         const settingsData = await settingsRes.json();
 
         if (!profileRes.ok) {
-          const apiErrorKey = getApiErrorKey((profileData as any).error);
-          throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorLoadProfile"));
+          const errorMessage = getErrorMessage((profileData as any).error);
+          const apiErrorKey = getApiErrorKey(errorMessage);
+          throw new Error(apiErrorKey ? t(apiErrorKey) : errorMessage ?? t("errorLoadProfile"));
         }
 
         const profile = profileData.profile;
@@ -156,8 +158,9 @@ export function UpdateDataClient() {
 
       const data = await res.json();
       if (!res.ok) {
-        const apiErrorKey = getApiErrorKey(data.error);
-        setError(apiErrorKey ? t(apiErrorKey) : t("errorAvatarUploadFailed"));
+        const errorMessage = getErrorMessage(data.error);
+        const apiErrorKey = getApiErrorKey(errorMessage);
+        setError(apiErrorKey ? t(apiErrorKey) : errorMessage ?? t("errorAvatarUploadFailed"));
         return;
       }
 
@@ -201,8 +204,9 @@ export function UpdateDataClient() {
 
       const data = await res.json();
       if (!res.ok) {
-        const apiErrorKey = getApiErrorKey(data.error);
-        setError(apiErrorKey ? t(apiErrorKey) : t("errorSaveProfile"));
+        const errorMessage = getErrorMessage(data.error);
+        const apiErrorKey = getApiErrorKey(errorMessage);
+        setError(apiErrorKey ? t(apiErrorKey) : errorMessage ?? t("errorSaveProfile"));
         setSaving(false);
         return;
       }
@@ -215,8 +219,9 @@ export function UpdateDataClient() {
 
       const settingsData = await settingsRes.json();
       if (!settingsRes.ok) {
-        const apiErrorKey = getApiErrorKey(settingsData.error);
-        setError(apiErrorKey ? t(apiErrorKey) : t("errorSaveSettings"));
+        const errorMessage = getErrorMessage(settingsData.error);
+        const apiErrorKey = getApiErrorKey(errorMessage);
+        setError(apiErrorKey ? t(apiErrorKey) : errorMessage ?? t("errorSaveSettings"));
       } else {
         setMessage(t("profileSaved"));
       }

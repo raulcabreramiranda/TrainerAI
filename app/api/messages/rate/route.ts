@@ -1,31 +1,26 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import { connectDb } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { Message } from "@/models/Message";
+import { ApiError } from "@/lib/api/errors";
+import { parseJson, toErrorResponse } from "@/lib/api/server";
+export const dynamic = "force-dynamic";
 
-const allowedPlanTypes = new Set(["WorkoutPlan", "DietPlan"]);
+const rateSchema = z.object({
+  planId: z.string().min(1, "Invalid request."),
+  planType: z.enum(["WorkoutPlan", "DietPlan"], { message: "Invalid request." }),
+  rating: z.coerce.number().min(1, "Invalid rating.").max(5, "Invalid rating.")
+});
 
 export async function POST(req: NextRequest) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      throw new ApiError("unauthorized", "Unauthorized", 401);
     }
 
-    const body = (await req.json()) as {
-      planId?: string;
-      planType?: string;
-      rating?: number;
-    };
-
-    if (!body.planId || !body.planType || !allowedPlanTypes.has(body.planType)) {
-      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
-    }
-
-    const rating = Number(body.rating);
-    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
-      return NextResponse.json({ error: "Invalid rating." }, { status: 400 });
-    }
+    const body = await parseJson(req, rateSchema);
 
     await connectDb();
 
@@ -36,17 +31,18 @@ export async function POST(req: NextRequest) {
         planType: body.planType,
         assistantContent: { $exists: true, $ne: "" }
       },
-      { rating },
-      { sort: { createdAt: -1 }, new: true }
+      { rating: body.rating },
+      { sort: { _id: -1 }, new: true }
     );
 
     if (!message) {
-      return NextResponse.json({ error: "Message not found." }, { status: 404 });
+      throw new ApiError("message_not_found", "Message not found.", 404);
     }
 
     return NextResponse.json({ message });
   } catch (error) {
-    console.error("Rate message error", error);
-    return NextResponse.json({ error: "Failed to save rating." }, { status: 500 });
+    return toErrorResponse(error);
   }
 }
+
+

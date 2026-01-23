@@ -1,35 +1,40 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import { connectDb } from "@/lib/db";
 import { setAuthCookie, signJwt, verifyPassword } from "@/lib/auth";
 import { User } from "@/models/User";
-import { isNonEmptyString } from "@/lib/validation";
+import { ApiError } from "@/lib/api/errors";
+import { parseJson, toErrorResponse } from "@/lib/api/server";
+import { requiredEmail, requiredString } from "@/lib/api/validation";
+export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
+const loginSchema = z.object({
+  email: requiredEmail("Email and password required.", "Valid email is required."),
+  password: requiredString("Email and password required.")
+});
+
+export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as { email?: string; password?: string };
-
-    if (!isNonEmptyString(body.email) || !isNonEmptyString(body.password)) {
-      return NextResponse.json({ error: "Email and password required." }, { status: 400 });
-    }
+    const body = await parseJson(req, loginSchema);
 
     await connectDb();
 
     const user = await User.findOne({ email: body.email.toLowerCase() });
     if (!user) {
-      return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
+      throw new ApiError("invalid_credentials", "Invalid credentials.", 401);
     }
 
     if (user.status !== "active") {
-      return NextResponse.json({ error: "Account is blocked." }, { status: 403 });
+      throw new ApiError("account_blocked", "Account is blocked.", 403);
     }
 
     if (!user.passwordHash) {
-      return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
+      throw new ApiError("invalid_credentials", "Invalid credentials.", 401);
     }
 
     const ok = await verifyPassword(body.password, user.passwordHash);
     if (!ok) {
-      return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
+      throw new ApiError("invalid_credentials", "Invalid credentials.", 401);
     }
 
     const token = signJwt({ userId: String(user._id) });
@@ -37,7 +42,12 @@ export async function POST(req: Request) {
     setAuthCookie(res, token);
     return res;
   } catch (error) {
-    console.error("Login error", error);
-    return NextResponse.json({ error: "Login failed." }, { status: 500 });
+    return toErrorResponse(error, {
+      code: "login_failed",
+      message: "Login failed.",
+      status: 500
+    });
   }
 }
+
+

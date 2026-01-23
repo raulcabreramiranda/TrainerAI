@@ -9,6 +9,7 @@ import { SetTable, type WorkoutSetRow } from "@/components/workout/SetTable";
 import { SessionHeader } from "@/components/workout/SessionHeader";
 import { useTranslations } from "@/components/LanguageProvider";
 import type { TranslationKey } from "@/lib/i18n";
+import { getErrorMessage } from "@/lib/api/errors";
 
 type ExercisePlan = {
   name: string;
@@ -146,7 +147,8 @@ export function WorkoutSessionClient({
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) {
-          throw new Error(data.error || t("workoutSessionSaveError"));
+          const errorMessage = getErrorMessage(data.error);
+          throw new Error(errorMessage || t("workoutSessionSaveError"));
         }
         return data.session as {
           exercises?: ExerciseLog[];
@@ -400,7 +402,8 @@ export function WorkoutSessionClient({
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || t("workoutSessionSaveError"));
+        const errorMessage = getErrorMessage(data.error);
+        throw new Error(errorMessage || t("workoutSessionSaveError"));
       }
     } catch (err: any) {
       if (!silent) {

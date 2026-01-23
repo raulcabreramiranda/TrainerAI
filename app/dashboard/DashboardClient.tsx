@@ -6,6 +6,7 @@ import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { useTranslations } from "@/components/LanguageProvider";
 import { getApiErrorKey, getOptionLabelKey } from "@/lib/i18n";
+import { getErrorMessage } from "@/lib/api/errors";
 
 type Profile = {
   goal: string;
@@ -43,13 +44,15 @@ export function DashboardClient() {
         const planData = await planRes.json();
 
         if (!profileRes.ok) {
-          const apiErrorKey = getApiErrorKey(profileData.error);
-          throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorLoadProfile"));
+          const errorMessage = getErrorMessage(profileData.error);
+          const apiErrorKey = getApiErrorKey(errorMessage);
+          throw new Error(apiErrorKey ? t(apiErrorKey) : errorMessage ?? t("errorLoadProfile"));
         }
 
         if (!planRes.ok) {
-          const apiErrorKey = getApiErrorKey(planData.error);
-          throw new Error(apiErrorKey ? t(apiErrorKey) : t("errorGeneric"));
+          const errorMessage = getErrorMessage(planData.error);
+          const apiErrorKey = getApiErrorKey(errorMessage);
+          throw new Error(apiErrorKey ? t(apiErrorKey) : errorMessage ?? t("errorGeneric"));
         }
 
         setProfile(profileData.profile);

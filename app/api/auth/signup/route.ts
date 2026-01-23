@@ -1,36 +1,33 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import { connectDb } from "@/lib/db";
 import { hashPassword, setAuthCookie, signJwt } from "@/lib/auth";
 import { User } from "@/models/User";
 import { UserProfile } from "@/models/UserProfile";
-import { isNonEmptyString } from "@/lib/validation";
+import { ApiError } from "@/lib/api/errors";
+import { parseJson, toErrorResponse } from "@/lib/api/server";
+import { requiredEmail, requiredMinString } from "@/lib/api/validation";
+export const dynamic = "force-dynamic";
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const signupSchema = z.object({
+  name: z.string().trim().optional(),
+  email: requiredEmail("Valid email is required.", "Valid email is required."),
+  password: requiredMinString(
+    8,
+    "Password must be at least 8 characters.",
+    "Password must be at least 8 characters."
+  )
+});
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as {
-      name?: string;
-      email?: string;
-      password?: string;
-    };
-
-    if (!isNonEmptyString(body.email) || !EMAIL_REGEX.test(body.email)) {
-      return NextResponse.json({ error: "Valid email is required." }, { status: 400 });
-    }
-
-    if (!isNonEmptyString(body.password) || body.password.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters." },
-        { status: 400 }
-      );
-    }
+    const body = await parseJson(req, signupSchema);
 
     await connectDb();
 
     const existing = await User.findOne({ email: body.email.toLowerCase() });
     if (existing) {
-      return NextResponse.json({ error: "Email already in use." }, { status: 409 });
+      throw new ApiError("email_in_use", "Email already in use.", 409);
     }
 
     const passwordHash = await hashPassword(body.password);
@@ -38,7 +35,7 @@ export async function POST(req: Request) {
     const user = await User.create({
       email: body.email.toLowerCase(),
       passwordHash,
-      name: isNonEmptyString(body.name) ? body.name.trim() : undefined,
+      name: body.name?.trim() || undefined,
       provider: "credentials"
     });
 
@@ -54,7 +51,12 @@ export async function POST(req: Request) {
     setAuthCookie(res, token);
     return res;
   } catch (error) {
-    console.error("Signup error", error);
-    return NextResponse.json({ errorMsg: "Signup failed.", error }, { status: 500 });
+    return toErrorResponse(error, {
+      code: "signup_failed",
+      message: "Signup failed.",
+      status: 500
+    });
   }
 }
+
+

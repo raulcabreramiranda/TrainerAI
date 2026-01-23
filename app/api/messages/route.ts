@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import { connectDb } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { Message } from "@/models/Message";
@@ -7,9 +8,12 @@ import { WorkoutPlanModel } from "@/models/WorkoutPlan";
 import { DietPlanModel } from "@/models/DietPlan";
 import { type GeminiMessage } from "@/lib/gemini";
 import { askAiModel } from "@/lib/ai-model-router";
-import { isNonEmptyString } from "@/lib/validation";
 import { Settings } from "@/models/Settings";
 import { languageInstruction, normalizeLanguage } from "@/lib/language";
+import { ApiError } from "@/lib/api/errors";
+import { parseJson, parseSearchParams, toErrorResponse } from "@/lib/api/server";
+import { requiredString } from "@/lib/api/validation";
+export const dynamic = "force-dynamic";
 
 const BASE_SYSTEM_PROMPT = `You are a helpful fitness and nutrition assistant.
 You must NOT give medical advice.
@@ -30,19 +34,31 @@ const normalizePlanType = (value?: string): PlanTypeModel | undefined => {
   return planTypeMap[value as PlanTypeInput];
 };
 
+const messageQuerySchema = z.object({
+  planId: z.string().optional(),
+  planType: z.string().optional(),
+  limit: z.coerce.number().optional()
+});
+
+const messageBodySchema = z.object({
+  content: requiredString("Message content required."),
+  planId: z.string().optional(),
+  planType: z.string().optional()
+});
+
 export async function GET(req: NextRequest) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      throw new ApiError("unauthorized", "Unauthorized", 401);
     }
 
-    const { searchParams } = req.nextUrl;
-    const planId = searchParams.get("planId") ?? undefined;
-    const planTypeInput = searchParams.get("planType") ?? undefined;
+    const { planId, planType: planTypeInput, limit: rawLimit } = parseSearchParams(
+      req,
+      messageQuerySchema
+    );
     const planType = normalizePlanType(planTypeInput);
-    const rawLimit = Number(searchParams.get("limit"));
-    const limit = Math.min(Number.isFinite(rawLimit) ? rawLimit : 50, 50);
+    const limit = Number.isFinite(rawLimit ?? NaN) ? Math.min(rawLimit as number, 50) : 50;
 
     await connectDb();
 
@@ -73,8 +89,11 @@ export async function GET(req: NextRequest) {
       messages: response
     });
   } catch (error) {
-    console.error("Fetch messages error", error);
-    return NextResponse.json({ error: "Failed to load messages." }, { status: 500 });
+    return toErrorResponse(error, {
+      code: "load_messages_failed",
+      message: "Failed to load messages.",
+      status: 500
+    });
   }
 }
 
@@ -82,17 +101,10 @@ export async function POST(req: NextRequest) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      throw new ApiError("unauthorized", "Unauthorized", 401);
     }
 
-    const body = (await req.json()) as {
-      content?: string;
-      planId?: string;
-      planType?: string;
-    };
-    if (!isNonEmptyString(body.content)) {
-      return NextResponse.json({ error: "Message content required." }, { status: 400 });
-    }
+    const body = await parseJson(req, messageBodySchema);
 
     await connectDb();
 
@@ -236,7 +248,12 @@ export async function POST(req: NextRequest) {
       messages: [saved]
     });
   } catch (error) {
-    console.error("Send message error", error);
-    return NextResponse.json({ error: "Failed to send message." }, { status: 500 });
+    return toErrorResponse(error, {
+      code: "send_message_failed",
+      message: "Failed to send message.",
+      status: 500
+    });
   }
 }
+
+
