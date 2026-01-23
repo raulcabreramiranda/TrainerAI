@@ -281,7 +281,7 @@ JSON schema example:
       throw lastError ?? new Error("Failed to generate diet");
     }
 
-    let plan = await DietPlanModel.findOne({ userId, isActive: true }).sort({ createdAt: -1 });
+    let plan = await DietPlanModel.findOne({ userId, isActive: true }).sort({ _id: -1 });
 
     if (!plan) {
       plan = await DietPlanModel.create({

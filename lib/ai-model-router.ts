@@ -14,12 +14,17 @@ type AiModelChoice = {
 
 async function getLeastUsedModel(): Promise<AiModelChoice> {
   await connectDb();
-  const record = await AiModel.findOne({
+  const records = await AiModel.find({
     $or: [{ enabled: true }, { enabled: { $exists: false } }]
-  }).sort({
-    usageCount: 1,
-    updatedAt: 1
-  });
+  }).select("name type usageCount updatedAt");
+  const record = records.sort((a, b) => {
+    const usageDelta = (a.usageCount ?? 0) - (b.usageCount ?? 0);
+    if (usageDelta !== 0) return usageDelta;
+    const aUpdated = a.updatedAt ? a.updatedAt.getTime() : 0;
+    const bUpdated = b.updatedAt ? b.updatedAt.getTime() : 0;
+    if (aUpdated !== bUpdated) return aUpdated - bUpdated;
+    return String(a._id).localeCompare(String(b._id));
+  })[0];
   if (!record) {
     throw new Error("No enabled AI models available");
   }

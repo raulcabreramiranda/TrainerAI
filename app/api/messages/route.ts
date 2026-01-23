@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     }
 
     const messages = await Message.find(filter)
-      .sort({ createdAt: -1 })
+      .sort({ _id: -1 })
       .limit(limit);
 
     const response = messages.map((message) => ({
@@ -125,20 +125,20 @@ export async function POST(req: NextRequest) {
       }
     } else if (planType === "WorkoutPlan") {
       activePlan = await WorkoutPlanModel.findOne({ userId, isActive: true }).sort({
-        createdAt: -1
+        _id: -1
       });
       activePlanType = activePlan ? "WorkoutPlan" : undefined;
     } else if (planType === "DietPlan") {
       activePlan = await DietPlanModel.findOne({ userId, isActive: true }).sort({
-        createdAt: -1
+        _id: -1
       });
       activePlanType = activePlan ? "DietPlan" : undefined;
     } else {
       activeWorkoutPlan = await WorkoutPlanModel.findOne({ userId, isActive: true }).sort({
-        createdAt: -1
+        _id: -1
       });
       activeDietPlan = await DietPlanModel.findOne({ userId, isActive: true }).sort({
-        createdAt: -1
+        _id: -1
       });
       if (activeWorkoutPlan && activeDietPlan) {
         const workoutUpdated = activeWorkoutPlan.updatedAt
@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
       ...(body.planId ? { planId: body.planId } : {}),
       ...(planType ? { planType } : {})
     })
-      .sort({ createdAt: -1 })
+      .sort({ _id: -1 })
       .limit(10);
 
     const contextLines = [

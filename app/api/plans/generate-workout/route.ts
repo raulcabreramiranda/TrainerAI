@@ -252,7 +252,7 @@ JSON schema example:
     }
 
     let plan = await WorkoutPlanModel.findOne({ userId, isActive: true }).sort({
-      createdAt: -1
+      _id: -1
     });
 
     if (!plan) {

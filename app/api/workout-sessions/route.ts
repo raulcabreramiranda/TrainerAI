@@ -171,7 +171,7 @@ export async function GET(req: NextRequest) {
 
     await connectDb();
 
-    let query = WorkoutSession.find(filter).sort({ createdAt: -1 });
+    let query = WorkoutSession.find(filter).sort({ _id: -1 });
     if (limit) {
       query = query.limit(limit);
     }

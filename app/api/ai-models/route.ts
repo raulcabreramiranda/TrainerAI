@@ -18,7 +18,12 @@ export async function GET(req: NextRequest) {
 
     await connectDb();
 
-    const models = await AiModel.find().sort({ usageCount: 1, name: 1 });
+    const models = await AiModel.find();
+    models.sort((a, b) => {
+      const usageDelta = (a.usageCount ?? 0) - (b.usageCount ?? 0);
+      if (usageDelta !== 0) return usageDelta;
+      return String(a.name ?? "").localeCompare(String(b.name ?? ""));
+    });
 
     return NextResponse.json({ models });
   } catch (error) {

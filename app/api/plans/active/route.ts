@@ -13,17 +13,17 @@ export async function GET(req: NextRequest) {
   await connectDb();
 
   let workoutPlan = await WorkoutPlanModel.findOne({ userId, isActive: true }).sort({
-    createdAt: -1
+    _id: -1
   });
   if (!workoutPlan) {
-    workoutPlan = await WorkoutPlanModel.findOne({ userId }).sort({ createdAt: -1 });
+    workoutPlan = await WorkoutPlanModel.findOne({ userId }).sort({ _id: -1 });
   }
 
   let dietPlan = await DietPlanModel.findOne({ userId, isActive: true }).sort({
-    createdAt: -1
+    _id: -1
   });
   if (!dietPlan) {
-    dietPlan = await DietPlanModel.findOne({ userId }).sort({ createdAt: -1 });
+    dietPlan = await DietPlanModel.findOne({ userId }).sort({ _id: -1 });
   }
 
   return NextResponse.json({ workoutPlan, dietPlan });
