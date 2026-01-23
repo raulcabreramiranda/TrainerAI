@@ -4,3 +4,4 @@ node_modules
 .history
 .env.local
 .DS_Store
+test-results/.last-run.json

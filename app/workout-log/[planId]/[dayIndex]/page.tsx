@@ -19,6 +19,50 @@ export default async function WorkoutSessionPage({ params, searchParams }: PageP
   const userId = requireAuth();
   const dayIndex = Number(params.dayIndex);
 
+  if (process.env.E2E_MOCKS === "true") {
+    const safeDayIndex = Number.isFinite(dayIndex) ? dayIndex : 1;
+    const mockPlanDay = {
+      label: `Day ${safeDayIndex}`,
+      focus: "Full body",
+      notes: "E2E mock session.",
+      isRestDay: false,
+      exercises: [
+        {
+          name: "Goblet squat",
+          equipment: "Dumbbell",
+          order: 1,
+          sets: 3,
+          reps: "10"
+        },
+        {
+          name: "Push-up",
+          equipment: "Bodyweight",
+          order: 2,
+          sets: 3,
+          reps: "8-12"
+        }
+      ]
+    };
+
+    return (
+      <div className="min-h-screen">
+        <NavBar />
+        <Container>
+          <WorkoutSessionClient
+            sessionId={searchParams?.sessionId}
+            planTitle="E2E Workout Plan"
+            dayIndex={safeDayIndex}
+            dayLabel={mockPlanDay.label}
+            dayFocus={mockPlanDay.focus}
+            dayNotes={mockPlanDay.notes}
+            isRestDay={mockPlanDay.isRestDay}
+            exercises={mockPlanDay.exercises}
+          />
+        </Container>
+      </div>
+    );
+  }
+
   await connectDb();
 
   const plan = await WorkoutPlanModel.findOne({ _id: params.planId, userId }).lean();
